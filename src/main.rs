@@ -32,11 +32,13 @@ static VERTEX_SHADER: &str = r#"
 
 in vec3 position;
 
-uniform mat4 trans;
+uniform mat4 model;
+uniform mat4 view;
+uniform mat4 proj;
 
 void main()
 {
-        gl_Position = trans * vec4(position, 1.0);
+        gl_Position = proj * view * model * vec4(position, 1.0);
 }
 "#;
 
@@ -53,6 +55,9 @@ void main()
 
 struct Game {
     last_tick: Instant,
+    timer: f32,
+
+    uni_model: GLint,
 }
 
 impl Game {
@@ -127,16 +132,27 @@ impl Game {
             ebo
         };
 
-        let uni_trans = unsafe {
-            gl::GetUniformLocation(shader_program, CString::new("trans").unwrap().as_ptr())
+        let uni_model = unsafe {
+            gl::GetUniformLocation(shader_program, CString::new("model").unwrap().as_ptr())
+        };
+        let uni_view = unsafe {
+            gl::GetUniformLocation(shader_program, CString::new("view").unwrap().as_ptr())
+        };
+        let uni_proj = unsafe {
+            gl::GetUniformLocation(shader_program, CString::new("proj").unwrap().as_ptr())
         };
 
         // matrix transformations
         use cgmath::prelude::*;
-        let mut trans = cgmath::Matrix4::look_at((1.5, 1.5, 1.5).into(), (0.0, 0.0, 0.0).into(), (0.0, 0.0, 1.0).into());
-        trans = cgmath::perspective(cgmath::Deg(45.0), 640.0/480.0, 1.0, 10.0) * trans;
+        //let model = cgmath::Matrix4::identity();
+        let model: cgmath::Matrix4<f32> = cgmath::Quaternion::from_angle_z(cgmath::Deg(10.5)).into();
+        println!("{:?}", model);
+        let view = cgmath::Matrix4::look_at((1.5, 1.5, 1.5).into(), (0.0, 0.0, 0.0).into(), (0.0, 0.0, 1.0).into());
+        let proj = cgmath::perspective(cgmath::Deg(45.0), 640.0/480.0, 1.0, 10.0);
         unsafe {
-            gl::UniformMatrix4fv(uni_trans, 1, gl::FALSE, trans.as_ptr());
+            gl::UniformMatrix4fv(uni_model, 1, gl::FALSE, model.as_ptr());
+            gl::UniformMatrix4fv(uni_view, 1, gl::FALSE, view.as_ptr());
+            gl::UniformMatrix4fv(uni_proj, 1, gl::FALSE, proj.as_ptr());
         }
 
         unsafe {
@@ -145,16 +161,27 @@ impl Game {
 
         Game {
             last_tick: Instant::now(),
+            timer: 0.0,
+
+            uni_model,
         }
     }
 
     pub fn tick(&mut self) {
         // update timing
         let current_tick = Instant::now();
-        let _delta = current_tick.duration_since(self.last_tick);
+        let delta = current_tick.duration_since(self.last_tick);
         self.last_tick = current_tick;
+        self.timer += delta.as_secs_f32();
 
-        //println!("{} FPS", 1.0/delta.as_secs_f64());
+        const SPEED: f32 = 260.0; // degrees per second
+        let angle = cgmath::Deg(self.timer * SPEED);
+
+        use cgmath::prelude::*;
+        let model: cgmath::Matrix4<_> = cgmath::Quaternion::from_angle_z(angle).into();
+        unsafe {
+            gl::UniformMatrix4fv(self.uni_model, 1, gl::FALSE, model.as_ptr());
+        }
     }
 
     pub fn draw(&self) {
@@ -202,6 +229,8 @@ fn main() {
 
             Event::MainEventsCleared => {
                 game.tick();
+
+                context.window().request_redraw();
             },
 
             Event::RedrawRequested(_) => {
