@@ -27,7 +27,7 @@ impl Game {
         self.last_tick = current_tick;
         self.timer += delta.as_secs_f32();
 
-        const SPEED: f32 = 260.0; // degrees per second
+        const SPEED: f32 = 90.0; // degrees per second
         let angle = cgmath::Deg(self.timer * SPEED);
 
         use cgmath::prelude::*;
@@ -41,7 +41,7 @@ impl Game {
 
         unsafe {
             gl::ClearColor(0.1, 0.1, 0.1, 1.0);
-            gl::Clear(gl::COLOR_BUFFER_BIT);
+            gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
 
             gl::BindVertexArray(self.res.vao);
             gl::DrawArrays(gl::TRIANGLES, 0, 36);
@@ -65,6 +65,9 @@ fn main() {
     
     // initialize opengl
     gl::load_with(|s| context.get_proc_address(s) as *const _);
+    unsafe {
+        gl::Enable(gl::DEPTH_TEST);
+    }
 
     let mut game = Game::new();
 

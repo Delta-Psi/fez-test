@@ -49,6 +49,10 @@ static VERTEX_SHADER: &str = r#"
 #version 150 core
 
 in vec3 position;
+in vec3 normal;
+
+out vec3 Normal;
+out vec3 FragPos;
 
 uniform mat4 model;
 uniform mat4 view;
@@ -57,17 +61,28 @@ uniform mat4 proj;
 void main()
 {
         gl_Position = proj * view * model * vec4(position, 1.0);
+        Normal = mat3(transpose(inverse(model))) * normal;
+        FragPos = vec3(model * vec4(position, 1.0));
 }
 "#;
 
 static FRAGMENT_SHADER: &str = r#"
 #version 150 core
 
+in vec3 Normal;
+in vec3 FragPos;
+
 out vec4 outColor;
 
 void main()
 {
-        outColor = vec4(1.0, 0.0, 0.0, 1.0);
+        vec3 lightPos = vec3(1.5, 1.5, 1.0);
+        vec3 norm = normalize(Normal);
+        vec3 lightDir = normalize(lightPos - FragPos);
+        float diffuse = 0.8*max(dot(norm, lightDir), 0.0);
+        float ambient = 0.2;
+
+        outColor = vec4((ambient + diffuse)*vec3(1.0, 0.0, 0.0), 1.0);
 }
 "#;
 
@@ -106,7 +121,11 @@ impl Resources {
 
             let mut status = gl::FALSE as GLint;
             gl::GetShaderiv(shader, gl::COMPILE_STATUS, &mut status as *mut _);
-            assert_eq!(status, gl::TRUE as GLint);
+            if status != gl::TRUE.into() {
+                let mut buf = vec![0u8; 512];
+                gl::GetShaderInfoLog(shader, 512, 0 as *mut _, buf.as_mut_ptr() as *mut _);
+                panic!("{}", String::from_utf8_lossy(&buf));
+            }
 
             shader
         };
@@ -118,7 +137,11 @@ impl Resources {
 
             let mut status = gl::FALSE as GLint;
             gl::GetShaderiv(shader, gl::COMPILE_STATUS, &mut status as *mut _);
-            assert_eq!(status, gl::TRUE as GLint);
+            if status != gl::TRUE.into() {
+                let mut buf = vec![0u8; 512];
+                gl::GetShaderInfoLog(shader, 512, 0 as *mut _, buf.as_mut_ptr() as *mut _);
+                panic!("{}", String::from_utf8_lossy(&buf));
+            }
 
             shader
         };
@@ -145,10 +168,9 @@ impl Resources {
             gl::VertexAttribPointer(pos_attrib, 3, gl::FLOAT, gl::FALSE, 6*std::mem::size_of::<GLfloat>() as i32, 0 as *mut _);
             gl::EnableVertexAttribArray(pos_attrib);
 
-            //let normal_attrib = gl::GetAttribLocation(shader_program, CString::new("normal").unwrap().as_ptr()) as u32;
-            //println!("{}", normal_attrib);
-            //gl::VertexAttribPointer(normal_attrib, 3, gl::FLOAT, gl::FALSE, 6*std::mem::size_of::<GLfloat>() as i32, (3*std::mem::size_of::<GLfloat>()) as *mut _);
-            //gl::EnableVertexAttribArray(normal_attrib);
+            let normal_attrib = gl::GetAttribLocation(shader_program, CString::new("normal").unwrap().as_ptr()) as u32;
+            gl::VertexAttribPointer(normal_attrib, 3, gl::FLOAT, gl::FALSE, 6*std::mem::size_of::<GLfloat>() as i32, (3*std::mem::size_of::<GLfloat>()) as *mut _);
+            gl::EnableVertexAttribArray(normal_attrib);
 
             vao
         };
@@ -169,7 +191,7 @@ impl Resources {
         use cgmath::prelude::*;
         let model = cgmath::Matrix4::identity();
         //let view = cgmath::Matrix4::look_at((0.0, 1.0, 0.0).into(), (0.0, 0.0, 0.0).into(), (0.0, 0.0, 1.0).into());
-        let view = cgmath::Matrix4::look_at((3.0, 3.0, 3.0).into(), (0.0, 0.0, 0.0).into(), (0.0, 0.0, 1.0).into());
+        let view = cgmath::Matrix4::look_at((1.5, 1.5, 1.5).into(), (0.0, 0.0, 0.0).into(), (0.0, 0.0, 1.0).into());
         let proj = cgmath::perspective(cgmath::Deg(45.0), 640.0/480.0, 1.0, 10.0);
         // orthogonal (w fixed aspect ratio)
         /*let proj =
