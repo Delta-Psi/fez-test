@@ -1,49 +1,16 @@
 use gl::types::*;
 
+macro_rules! cube {
+    ($hl:expr) => {
+        &[
+            // BOTTOM
+            cube![-$hl, -$hl, @$hl],
+        ];
+    };
+}
+
 // cube
-pub static VERTICES: &[GLfloat] = &[
-    -0.5, -0.5, -0.5,  0.0,  0.0, -1.0,
-    0.5, -0.5, -0.5,  0.0,  0.0, -1.0, 
-    0.5,  0.5, -0.5,  0.0,  0.0, -1.0, 
-    0.5,  0.5, -0.5,  0.0,  0.0, -1.0, 
-    -0.5,  0.5, -0.5,  0.0,  0.0, -1.0, 
-    -0.5, -0.5, -0.5,  0.0,  0.0, -1.0, 
-
-    -0.5, -0.5,  0.5,  0.0,  0.0, 1.0,
-    0.5, -0.5,  0.5,  0.0,  0.0, 1.0,
-    0.5,  0.5,  0.5,  0.0,  0.0, 1.0,
-    0.5,  0.5,  0.5,  0.0,  0.0, 1.0,
-    -0.5,  0.5,  0.5,  0.0,  0.0, 1.0,
-    -0.5, -0.5,  0.5,  0.0,  0.0, 1.0,
-
-    -0.5,  0.5,  0.5, -1.0,  0.0,  0.0,
-    -0.5,  0.5, -0.5, -1.0,  0.0,  0.0,
-    -0.5, -0.5, -0.5, -1.0,  0.0,  0.0,
-    -0.5, -0.5, -0.5, -1.0,  0.0,  0.0,
-    -0.5, -0.5,  0.5, -1.0,  0.0,  0.0,
-    -0.5,  0.5,  0.5, -1.0,  0.0,  0.0,
-
-    0.5,  0.5,  0.5,  1.0,  0.0,  0.0,
-    0.5,  0.5, -0.5,  1.0,  0.0,  0.0,
-    0.5, -0.5, -0.5,  1.0,  0.0,  0.0,
-    0.5, -0.5, -0.5,  1.0,  0.0,  0.0,
-    0.5, -0.5,  0.5,  1.0,  0.0,  0.0,
-    0.5,  0.5,  0.5,  1.0,  0.0,  0.0,
-
-    -0.5, -0.5, -0.5,  0.0, -1.0,  0.0,
-    0.5, -0.5, -0.5,  0.0, -1.0,  0.0,
-    0.5, -0.5,  0.5,  0.0, -1.0,  0.0,
-    0.5, -0.5,  0.5,  0.0, -1.0,  0.0,
-    -0.5, -0.5,  0.5,  0.0, -1.0,  0.0,
-    -0.5, -0.5, -0.5,  0.0, -1.0,  0.0,
-
-    -0.5,  0.5, -0.5,  0.0,  1.0,  0.0,
-    0.5,  0.5, -0.5,  0.0,  1.0,  0.0,
-    0.5,  0.5,  0.5,  0.0,  1.0,  0.0,
-    0.5,  0.5,  0.5,  0.0,  1.0,  0.0,
-    -0.5,  0.5,  0.5,  0.0,  1.0,  0.0,
-    -0.5,  0.5, -0.5,  0.0,  1.0,  0.0,
-];
+pub static VERTICES: &[GLfloat] = cube!(0.5);
 
 static VERTEX_SHADER: &str = r#"
 #version 150 core
@@ -142,13 +109,8 @@ impl Resources {
             gl::BindVertexArray(vao);
 
             let pos_attrib = gl::GetAttribLocation(shader_program, CString::new("position").unwrap().as_ptr()) as u32;
-            gl::VertexAttribPointer(pos_attrib, 3, gl::FLOAT, gl::FALSE, 6*std::mem::size_of::<GLfloat>() as i32, 0 as *mut _);
+            gl::VertexAttribPointer(pos_attrib, 3, gl::FLOAT, gl::FALSE, 0, std::ptr::null());
             gl::EnableVertexAttribArray(pos_attrib);
-
-            //let normal_attrib = gl::GetAttribLocation(shader_program, CString::new("normal").unwrap().as_ptr()) as u32;
-            //println!("{}", normal_attrib);
-            //gl::VertexAttribPointer(normal_attrib, 3, gl::FLOAT, gl::FALSE, 6*std::mem::size_of::<GLfloat>() as i32, (3*std::mem::size_of::<GLfloat>()) as *mut _);
-            //gl::EnableVertexAttribArray(normal_attrib);
 
             vao
         };
@@ -168,18 +130,17 @@ impl Resources {
         // matrix transformations
         use cgmath::prelude::*;
         let model = cgmath::Matrix4::identity();
-        //let view = cgmath::Matrix4::look_at((0.0, 1.0, 0.0).into(), (0.0, 0.0, 0.0).into(), (0.0, 0.0, 1.0).into());
-        let view = cgmath::Matrix4::look_at((3.0, 3.0, 3.0).into(), (0.0, 0.0, 0.0).into(), (0.0, 0.0, 1.0).into());
-        let proj = cgmath::perspective(cgmath::Deg(45.0), 640.0/480.0, 1.0, 10.0);
+        let view = cgmath::Matrix4::look_at((0.0, 1.0, 0.0).into(), (0.0, 0.0, 0.0).into(), (0.0, 0.0, 1.0).into());
+        //let proj = cgmath::perspective(cgmath::Deg(45.0), 640.0/480.0, 1.0, 10.0);
         // orthogonal (w fixed aspect ratio)
-        /*let proj =
+        let proj =
             cgmath::Matrix4::from_nonuniform_scale(1.0, ASPECT_RATIO, 1.0)
             *
             cgmath::ortho(
                 -1.5, 1.5,
                 -1.5, 1.5,
                 -10.0, 10.0,
-            );*/
+            );
         unsafe {
             gl::UniformMatrix4fv(unif_model, 1, gl::FALSE, model.as_ptr());
             gl::UniformMatrix4fv(unif_view, 1, gl::FALSE, view.as_ptr());
@@ -192,6 +153,8 @@ impl Resources {
 
         Resources {
             box_vertices,
+            box_edges,
+            box_faces,
 
             vertex_shader,
             fragment_shader,
@@ -208,6 +171,9 @@ impl Resources {
 impl Drop for Resources {
     fn drop(&mut self) {
         unsafe {
+            gl::DeleteBuffers(1, &self.box_faces as *const _);
+            gl::DeleteBuffers(1, &self.box_edges as *const _);
+
             gl::DeleteVertexArrays(1, &self.vao as *const _);
             gl::DeleteProgram(self.shader_program);
             gl::DeleteShader(self.fragment_shader);

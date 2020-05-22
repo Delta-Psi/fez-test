@@ -38,14 +38,13 @@ impl Game {
     }
 
     pub fn draw(&self) {
-        use gl::types::*;
 
         unsafe {
             gl::ClearColor(0.1, 0.1, 0.1, 1.0);
             gl::Clear(gl::COLOR_BUFFER_BIT);
 
-            gl::BindBuffer(gl::ELEMENT_ARRAY_BUFFER, self.res.box_faces);
-            gl::DrawElements(gl::TRIANGLES, resources::FACES.len() as GLint, gl::UNSIGNED_INT, 0 as *const _);
+            gl::BindVertexArray(self.res.vao);
+            gl::DrawArrays(gl::TRIANGLES, 0, 36);
         }
     }
 }
