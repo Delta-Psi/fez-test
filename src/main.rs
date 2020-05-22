@@ -3,19 +3,15 @@ use gl::types::*;
 
 // cube
 static VERTICES: &[GLfloat] = &[
-    0.0, 0.5,
-    0.5, -0.5,
-    -0.5, -0.5];
-/*
-    -1., -1., -1.,
-    -1., -1.,  1.,
-    -1.,  1., -1.,
-    -1.,  1.,  1.,
-     1., -1., -1.,
-     1., -1.,  1.,
-     1.,  1., -1.,
-     1.,  1.,  1.,
-];*/
+    -0.5, -0.5, -0.5,
+    -0.5, -0.5,  0.5,
+    -0.5,  0.5, -0.5,
+    -0.5,  0.5,  0.5,
+     0.5, -0.5, -0.5,
+     0.5, -0.5,  0.5,
+     0.5,  0.5, -0.5,
+     0.5,  0.5,  0.5,
+];
 static EDGES: &[GLuint] = &[
     0, 1,
     0, 2,
@@ -34,11 +30,13 @@ static EDGES: &[GLuint] = &[
 static VERTEX_SHADER: &str = r#"
 #version 150 core
 
-in vec2 position;
+in vec3 position;
+
+uniform mat4 trans;
 
 void main()
 {
-        gl_Position = vec4(position, 0.0, 1.0);
+        gl_Position = trans * vec4(position, 1.0);
 }
 "#;
 
@@ -115,8 +113,30 @@ impl Game {
             gl::BindVertexArray(vao);
 
             let pos_attrib = gl::GetAttribLocation(shader_program, CString::new("position").unwrap().as_ptr()) as u32;
-            gl::VertexAttribPointer(pos_attrib, 2, gl::FLOAT, gl::FALSE, 0, std::ptr::null());
+            gl::VertexAttribPointer(pos_attrib, 3, gl::FLOAT, gl::FALSE, 0, std::ptr::null());
             gl::EnableVertexAttribArray(pos_attrib);
+        }
+
+        let _elements = unsafe {
+            let mut ebo = 0;
+
+            gl::GenBuffers(1, &mut ebo as *mut _);
+            gl::BindBuffer(gl::ELEMENT_ARRAY_BUFFER, ebo);
+            gl::BufferData(gl::ELEMENT_ARRAY_BUFFER, std::mem::size_of_val(EDGES) as _, EDGES.as_ptr() as _, gl::STATIC_DRAW);
+
+            ebo
+        };
+
+        let uni_trans = unsafe {
+            gl::GetUniformLocation(shader_program, CString::new("trans").unwrap().as_ptr())
+        };
+
+        // matrix transformations
+        use cgmath::prelude::*;
+        let mut trans = cgmath::Matrix4::look_at((1.5, 1.5, 1.5).into(), (0.0, 0.0, 0.0).into(), (0.0, 0.0, 1.0).into());
+        trans = cgmath::perspective(cgmath::Deg(45.0), 640.0/480.0, 1.0, 10.0) * trans;
+        unsafe {
+            gl::UniformMatrix4fv(uni_trans, 1, gl::FALSE, trans.as_ptr());
         }
 
         unsafe {
@@ -142,7 +162,7 @@ impl Game {
             gl::ClearColor(0.1, 0.1, 0.1, 1.0);
             gl::Clear(gl::COLOR_BUFFER_BIT);
 
-            gl::DrawArrays(gl::LINE_LOOP, 0, 3);
+            gl::DrawElements(gl::LINES, EDGES.len() as GLint, gl::UNSIGNED_INT, 0 as *const _);
         }
     }
 }
