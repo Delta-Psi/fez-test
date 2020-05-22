@@ -53,19 +53,26 @@ void main()
 }
 "#;
 
-struct Game {
-    last_tick: Instant,
-    timer: f32,
+struct Resources {
+    pub box_vertices: GLuint,
+    pub box_elements: GLuint,
 
-    uni_model: GLint,
+    pub vertex_shader: GLuint,
+    pub fragment_shader: GLuint,
+    pub shader_program: GLuint,
+    pub vao: GLuint,
+
+    pub unif_model: GLint,
+    pub unif_view: GLint,
+    pub unif_proj: GLint,
 }
 
-impl Game {
-    pub fn new() -> Game {
+impl Resources {
+    pub fn new() -> Resources {
         // initialize all opengl data
         use std::ffi::CString;
 
-        let _vertices = unsafe {
+        let box_vertices = unsafe {
             let mut vbo = 0;
 
             gl::GenBuffers(1, &mut vbo as *mut _);
@@ -112,7 +119,7 @@ impl Game {
             program
         };
 
-        unsafe {
+        let vao = unsafe {
             let mut vao = 0;
             gl::GenVertexArrays(1, &mut vao as *mut _);
             gl::BindVertexArray(vao);
@@ -120,9 +127,11 @@ impl Game {
             let pos_attrib = gl::GetAttribLocation(shader_program, CString::new("position").unwrap().as_ptr()) as u32;
             gl::VertexAttribPointer(pos_attrib, 3, gl::FLOAT, gl::FALSE, 0, std::ptr::null());
             gl::EnableVertexAttribArray(pos_attrib);
-        }
 
-        let _elements = unsafe {
+            vao
+        };
+
+        let box_elements = unsafe {
             let mut ebo = 0;
 
             gl::GenBuffers(1, &mut ebo as *mut _);
@@ -132,38 +141,87 @@ impl Game {
             ebo
         };
 
-        let uni_model = unsafe {
+        let unif_model = unsafe {
             gl::GetUniformLocation(shader_program, CString::new("model").unwrap().as_ptr())
         };
-        let uni_view = unsafe {
+        let unif_view = unsafe {
             gl::GetUniformLocation(shader_program, CString::new("view").unwrap().as_ptr())
         };
-        let uni_proj = unsafe {
+        let unif_proj = unsafe {
             gl::GetUniformLocation(shader_program, CString::new("proj").unwrap().as_ptr())
         };
 
+        const ASPECT_RATIO: f32 = 640.0 / 480.0;
+
         // matrix transformations
         use cgmath::prelude::*;
-        //let model = cgmath::Matrix4::identity();
-        let model: cgmath::Matrix4<f32> = cgmath::Quaternion::from_angle_z(cgmath::Deg(10.5)).into();
-        println!("{:?}", model);
-        let view = cgmath::Matrix4::look_at((1.5, 1.5, 1.5).into(), (0.0, 0.0, 0.0).into(), (0.0, 0.0, 1.0).into());
-        let proj = cgmath::perspective(cgmath::Deg(45.0), 640.0/480.0, 1.0, 10.0);
+        let model = cgmath::Matrix4::identity();
+        let view = cgmath::Matrix4::look_at((0.0, 1.0, 0.0).into(), (0.0, 0.0, 0.0).into(), (0.0, 0.0, 1.0).into());
+        //let proj = cgmath::perspective(cgmath::Deg(45.0), 640.0/480.0, 1.0, 10.0);
+        // orthogonal (w fixed aspect ratio)
+        let proj =
+            cgmath::Matrix4::from_nonuniform_scale(1.0, ASPECT_RATIO, 1.0)
+            *
+            cgmath::ortho(
+                -1.5, 1.5,
+                -1.5, 1.5,
+                -10.0, 10.0,
+            );
         unsafe {
-            gl::UniformMatrix4fv(uni_model, 1, gl::FALSE, model.as_ptr());
-            gl::UniformMatrix4fv(uni_view, 1, gl::FALSE, view.as_ptr());
-            gl::UniformMatrix4fv(uni_proj, 1, gl::FALSE, proj.as_ptr());
+            gl::UniformMatrix4fv(unif_model, 1, gl::FALSE, model.as_ptr());
+            gl::UniformMatrix4fv(unif_view, 1, gl::FALSE, view.as_ptr());
+            gl::UniformMatrix4fv(unif_proj, 1, gl::FALSE, proj.as_ptr());
         }
 
         unsafe {
             assert_eq!(gl::GetError(), 0);
         }
 
+        Resources {
+            box_vertices,
+            box_elements,
+
+            vertex_shader,
+            fragment_shader,
+            shader_program,
+            vao,
+
+            unif_model,
+            unif_view,
+            unif_proj,
+        }
+    }
+}
+
+impl Drop for Resources {
+    fn drop(&mut self) {
+        unsafe {
+            gl::DeleteBuffers(1, &self.box_elements as *const _);
+
+            gl::DeleteVertexArrays(1, &self.vao as *const _);
+            gl::DeleteProgram(self.shader_program);
+            gl::DeleteShader(self.fragment_shader);
+            gl::DeleteShader(self.vertex_shader);
+
+            gl::DeleteBuffers(1, &self.box_vertices as *const _);
+        }
+    }
+}
+
+struct Game {
+    res: Resources,
+
+    last_tick: Instant,
+    timer: f32,
+}
+
+impl Game {
+    pub fn new() -> Game {
         Game {
+            res: Resources::new(),
+
             last_tick: Instant::now(),
             timer: 0.0,
-
-            uni_model,
         }
     }
 
@@ -180,7 +238,7 @@ impl Game {
         use cgmath::prelude::*;
         let model: cgmath::Matrix4<_> = cgmath::Quaternion::from_angle_z(angle).into();
         unsafe {
-            gl::UniformMatrix4fv(self.uni_model, 1, gl::FALSE, model.as_ptr());
+            gl::UniformMatrix4fv(self.res.unif_model, 1, gl::FALSE, model.as_ptr());
         }
     }
 
