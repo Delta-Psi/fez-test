@@ -25,6 +25,25 @@ pub static EDGES: &[GLuint] = &[
     6, 4,
     6, 7,
 ];
+pub static FACES: &[GLuint] = &[
+    0, 1, 2,
+    1, 2, 3,
+
+    0, 2, 4,
+    2, 4, 6,
+
+    0, 1, 4,
+    1, 4, 5,
+
+    7, 6, 5,
+    6, 5, 4,
+
+    7, 5, 3,
+    5, 3, 1,
+
+    7, 6, 3,
+    6, 3, 2,
+];
 
 static VERTEX_SHADER: &str = r#"
 #version 150 core
@@ -54,7 +73,8 @@ void main()
 
 pub struct Resources {
     pub box_vertices: GLuint,
-    pub box_elements: GLuint,
+    pub box_edges: GLuint,
+    pub box_faces: GLuint,
 
     pub vertex_shader: GLuint,
     pub fragment_shader: GLuint,
@@ -130,12 +150,22 @@ impl Resources {
             vao
         };
 
-        let box_elements = unsafe {
+        let box_edges = unsafe {
             let mut ebo = 0;
 
             gl::GenBuffers(1, &mut ebo as *mut _);
             gl::BindBuffer(gl::ELEMENT_ARRAY_BUFFER, ebo);
             gl::BufferData(gl::ELEMENT_ARRAY_BUFFER, std::mem::size_of_val(EDGES) as _, EDGES.as_ptr() as _, gl::STATIC_DRAW);
+
+            ebo
+        };
+
+        let box_faces = unsafe {
+            let mut ebo = 0;
+
+            gl::GenBuffers(1, &mut ebo as *mut _);
+            gl::BindBuffer(gl::ELEMENT_ARRAY_BUFFER, ebo);
+            gl::BufferData(gl::ELEMENT_ARRAY_BUFFER, std::mem::size_of_val(FACES) as _, FACES.as_ptr() as _, gl::STATIC_DRAW);
 
             ebo
         };
@@ -178,7 +208,8 @@ impl Resources {
 
         Resources {
             box_vertices,
-            box_elements,
+            box_edges,
+            box_faces,
 
             vertex_shader,
             fragment_shader,
@@ -195,7 +226,8 @@ impl Resources {
 impl Drop for Resources {
     fn drop(&mut self) {
         unsafe {
-            gl::DeleteBuffers(1, &self.box_elements as *const _);
+            gl::DeleteBuffers(1, &self.box_faces as *const _);
+            gl::DeleteBuffers(1, &self.box_edges as *const _);
 
             gl::DeleteVertexArrays(1, &self.vao as *const _);
             gl::DeleteProgram(self.shader_program);

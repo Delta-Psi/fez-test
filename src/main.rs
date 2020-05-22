@@ -44,7 +44,8 @@ impl Game {
             gl::ClearColor(0.1, 0.1, 0.1, 1.0);
             gl::Clear(gl::COLOR_BUFFER_BIT);
 
-            gl::DrawElements(gl::LINES, resources::EDGES.len() as GLint, gl::UNSIGNED_INT, 0 as *const _);
+            gl::BindBuffer(gl::ELEMENT_ARRAY_BUFFER, self.res.box_faces);
+            gl::DrawElements(gl::TRIANGLES, resources::FACES.len() as GLint, gl::UNSIGNED_INT, 0 as *const _);
         }
     }
 }
