@@ -16,13 +16,84 @@ enum CameraDirection {
     L, R,
 }
 
+struct Camera {
+    state: CameraState,
+    direction: Option<CameraDirection>,
+    rotate_again: bool,
+    rotation_phase: f32,
+}
+
+impl Camera {
+    pub fn new() -> Camera {
+        Camera {
+            state: CameraState::N,
+            direction: None,
+            rotate_again: false,
+            rotation_phase: 0.0,
+        }
+    }
+
+    pub fn rotate(&mut self, dir: CameraDirection) {
+        match self.direction {
+            None => self.direction = Some(dir),
+            Some(current_dir) => if current_dir == dir {
+                self.rotate_again = true;
+            },
+        }
+    }
+
+    fn tick(&mut self, delta: f32) {
+        use CameraState::*;
+
+        if let Some(dir) = self.direction {
+            self.rotation_phase += match dir {
+                CameraDirection::L => -delta / CAMERA_ROTATION_PERIOD,
+                CameraDirection::R =>  delta / CAMERA_ROTATION_PERIOD,
+            };
+
+            if self.rotation_phase.abs() >= 1.0 {
+                self.rotation_phase = 0.0;
+
+                self.state = match dir {
+                    CameraDirection::L => match self.state {
+                        N => E,
+                        E => S,
+                        S => W,
+                        W => N,
+                    },
+                    CameraDirection::R => match self.state {
+                        N => W,
+                        W => S,
+                        S => E,
+                        E => N,
+                    },
+                };
+
+                if self.rotate_again {
+                    self.rotate_again = false;
+                } else {
+                    self.direction = None;
+                }
+            }
+        }
+    }
+
+    pub fn view_matrix(&self) -> Matrix4<f32> {
+        let angle = cgmath::Deg(match self.state {
+            CameraState::S => 0.0,
+            CameraState::E => 90.0,
+            CameraState::N => 180.0,
+            CameraState::W => 270.0,
+        } + self.rotation_phase*90.0);
+
+        Matrix4::from_angle_x(cgmath::Deg(90.0)) * Matrix4::from_angle_z(angle)
+    }
+}
+
 struct Game {
     res: Resources,
 
-    camera_state: CameraState,
-    camera_direction: Option<CameraDirection>,
-    camera_rotate_again: bool,
-    camera_rotation_phase: f32, // either [0.0, 1.0) or (-1.0, 0.0]
+    camera: Camera,
 
     last_tick: Instant,
 }
@@ -34,22 +105,14 @@ impl Game {
         Game {
             res: Resources::new(),
 
-            camera_state: CameraState::N,
-            camera_direction: None,
-            camera_rotate_again: false,
-            camera_rotation_phase: 0.0,
+            camera: Camera::new(),
 
             last_tick: Instant::now(),
         }
     }
 
     pub fn rotate_camera(&mut self, dir: CameraDirection) {
-        match self.camera_direction {
-            None => self.camera_direction = Some(dir),
-            Some(current_dir) => if current_dir == dir {
-                self.camera_rotate_again = true;
-            },
-        }
+        self.camera.rotate(dir);
     }
 
     pub fn tick(&mut self) {
@@ -58,7 +121,7 @@ impl Game {
         let delta = current_tick.duration_since(self.last_tick).as_secs_f32();
         self.last_tick = current_tick;
 
-        self.update_camera(delta);
+        self.camera.tick(delta);
     }
 
     pub fn draw(&self) {
@@ -66,57 +129,11 @@ impl Game {
             gl::ClearColor(0.1, 0.1, 0.1, 1.0);
             gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
 
-            self.res.set_view_matrix(&self.view_matrix());
+            self.res.set_view_matrix(&self.camera.view_matrix());
             gl::DrawArrays(gl::TRIANGLES, 0, 36);
         }
     }
 
-    fn update_camera(&mut self, delta: f32) {
-        use CameraState::*;
-
-        if let Some(dir) = self.camera_direction {
-            self.camera_rotation_phase += match dir {
-                CameraDirection::L => -delta / CAMERA_ROTATION_PERIOD,
-                CameraDirection::R =>  delta / CAMERA_ROTATION_PERIOD,
-            };
-
-            if self.camera_rotation_phase.abs() >= 1.0 {
-                self.camera_rotation_phase = 0.0;
-
-                self.camera_state = match dir {
-                    CameraDirection::L => match self.camera_state {
-                        N => E,
-                        E => S,
-                        S => W,
-                        W => N,
-                    },
-                    CameraDirection::R => match self.camera_state {
-                        N => W,
-                        W => S,
-                        S => E,
-                        E => N,
-                    },
-                };
-
-                if self.camera_rotate_again {
-                    self.camera_rotate_again = false;
-                } else {
-                    self.camera_direction = None;
-                }
-            }
-        }
-    }
-
-    fn view_matrix(&self) -> Matrix4<f32> {
-        let angle = cgmath::Deg(match self.camera_state {
-            CameraState::S => 0.0,
-            CameraState::E => 90.0,
-            CameraState::N => 180.0,
-            CameraState::W => 270.0,
-        } + self.camera_rotation_phase*90.0);
-
-        Matrix4::from_angle_x(cgmath::Deg(90.0)) * Matrix4::from_angle_z(angle)
-    }
 }
 
 fn main() {
