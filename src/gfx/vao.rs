@@ -4,28 +4,14 @@ pub struct VertexArrayObject(GLuint);
 
 impl VertexArrayObject {
     pub fn new() -> VertexArrayObject {
-        let handle = unsafe {
-            let mut handle: GLuint = 0;
-            gl::GenVertexArrays(1, &mut handle as *mut GLuint);
-            handle
-        };
-
-        VertexArrayObject(handle)
+        VertexArrayObject(unsafe {
+            let mut name = 0;
+            gl::GenVertexArrays(1, &mut name as *mut GLuint);
+            name
+        })
     }
 
-    pub fn bind(&self) {
-        unsafe {
-            gl::BindVertexArray(self.0);
-        }
-    }
-
-    pub fn unbind() {
-        unsafe {
-            gl::BindVertexArray(0);
-        }
-    }
-
-    pub fn gl_handle(&self) -> GLuint {
+    pub fn name(&self) -> GLuint {
         self.0
     }
 }

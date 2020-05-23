@@ -86,10 +86,10 @@ void main()
 }
 "#;
 
-use crate::gfx::{Shader, ShaderType, ShaderProgram, VertexArrayObject};
+use crate::gfx::*;
 
 pub struct Resources {
-    pub box_vertices: GLuint,
+    pub box_vertices: BufferObject,
 
     pub vertex_shader: Shader,
     pub fragment_shader: Shader,
@@ -107,10 +107,9 @@ impl Resources {
         use std::ffi::CString;
 
         let box_vertices = unsafe {
-            let mut vbo = 0;
+            let vbo = BufferObject::new();
 
-            gl::GenBuffers(1, &mut vbo as *mut _);
-            gl::BindBuffer(gl::ARRAY_BUFFER, vbo);
+            gl::BindBuffer(gl::ARRAY_BUFFER, vbo.name());
             gl::BufferData(gl::ARRAY_BUFFER, std::mem::size_of_val(VERTICES) as _, VERTICES.as_ptr() as _, gl::STATIC_DRAW);
 
             vbo
@@ -123,19 +122,23 @@ impl Resources {
         shader_program.attach(&vertex_shader);
         shader_program.attach(&fragment_shader);
         shader_program.link().unwrap();
-        shader_program.use_();
+        unsafe {
+            gl::UseProgram(shader_program.name());
+        }
 
         let vao = VertexArrayObject::new();
-        vao.bind();
+        unsafe {
+            gl::BindVertexArray(vao.name());
+        }
 
         unsafe {
-            let vao = vao.gl_handle();
+            let vao = vao.name();
 
-            let pos_attrib = gl::GetAttribLocation(shader_program.gl_handle(), CString::new("position").unwrap().as_ptr()) as u32;
+            let pos_attrib = gl::GetAttribLocation(shader_program.name(), CString::new("position").unwrap().as_ptr()) as u32;
             gl::VertexAttribPointer(pos_attrib, 3, gl::FLOAT, gl::FALSE, 6*std::mem::size_of::<GLfloat>() as i32, 0 as *mut _);
             gl::EnableVertexAttribArray(pos_attrib);
 
-            let normal_attrib = gl::GetAttribLocation(shader_program.gl_handle(), CString::new("normal").unwrap().as_ptr()) as u32;
+            let normal_attrib = gl::GetAttribLocation(shader_program.name(), CString::new("normal").unwrap().as_ptr()) as u32;
             gl::VertexAttribPointer(normal_attrib, 3, gl::FLOAT, gl::FALSE, 6*std::mem::size_of::<GLfloat>() as i32, (3*std::mem::size_of::<GLfloat>()) as *mut _);
             gl::EnableVertexAttribArray(normal_attrib);
 
@@ -143,13 +146,13 @@ impl Resources {
         };
 
         let unif_model = unsafe {
-            gl::GetUniformLocation(shader_program.gl_handle(), CString::new("model").unwrap().as_ptr())
+            gl::GetUniformLocation(shader_program.name(), CString::new("model").unwrap().as_ptr())
         };
         let unif_view = unsafe {
-            gl::GetUniformLocation(shader_program.gl_handle(), CString::new("view").unwrap().as_ptr())
+            gl::GetUniformLocation(shader_program.name(), CString::new("view").unwrap().as_ptr())
         };
         let unif_proj = unsafe {
-            gl::GetUniformLocation(shader_program.gl_handle(), CString::new("proj").unwrap().as_ptr())
+            gl::GetUniformLocation(shader_program.name(), CString::new("proj").unwrap().as_ptr())
         };
 
         const ASPECT_RATIO: f32 = 640.0 / 480.0;
@@ -190,14 +193,6 @@ impl Resources {
             unif_model,
             unif_view,
             unif_proj,
-        }
-    }
-}
-
-impl Drop for Resources {
-    fn drop(&mut self) {
-        unsafe {
-            gl::DeleteBuffers(1, &self.box_vertices as *const _);
         }
     }
 }
