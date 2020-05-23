@@ -87,6 +87,7 @@ void main()
 "#;
 
 use crate::gfx::*;
+use crate::c_str;
 
 pub struct Resources {
     pub box_vertices: BufferObject,
@@ -104,8 +105,6 @@ pub struct Resources {
 impl Resources {
     pub fn new() -> Resources {
         // initialize all opengl data
-        use std::ffi::CString;
-
         let box_vertices = unsafe {
             let vbo = BufferObject::new();
 
@@ -134,11 +133,11 @@ impl Resources {
         unsafe {
             let vao = vao.name();
 
-            let pos_attrib = gl::GetAttribLocation(shader_program.name(), CString::new("position").unwrap().as_ptr()) as u32;
+            let pos_attrib = gl::GetAttribLocation(shader_program.name(), c_str!("position").as_ptr()) as u32;
             gl::VertexAttribPointer(pos_attrib, 3, gl::FLOAT, gl::FALSE, 6*std::mem::size_of::<GLfloat>() as i32, 0 as *mut _);
             gl::EnableVertexAttribArray(pos_attrib);
 
-            let normal_attrib = gl::GetAttribLocation(shader_program.name(), CString::new("normal").unwrap().as_ptr()) as u32;
+            let normal_attrib = gl::GetAttribLocation(shader_program.name(), c_str!("normal").as_ptr()) as u32;
             gl::VertexAttribPointer(normal_attrib, 3, gl::FLOAT, gl::FALSE, 6*std::mem::size_of::<GLfloat>() as i32, (3*std::mem::size_of::<GLfloat>()) as *mut _);
             gl::EnableVertexAttribArray(normal_attrib);
 
@@ -146,13 +145,13 @@ impl Resources {
         };
 
         let unif_model = unsafe {
-            gl::GetUniformLocation(shader_program.name(), CString::new("model").unwrap().as_ptr())
+            gl::GetUniformLocation(shader_program.name(), c_str!("model").as_ptr())
         };
         let unif_view = unsafe {
-            gl::GetUniformLocation(shader_program.name(), CString::new("view").unwrap().as_ptr())
+            gl::GetUniformLocation(shader_program.name(), c_str!("view").as_ptr())
         };
         let unif_proj = unsafe {
-            gl::GetUniformLocation(shader_program.name(), CString::new("proj").unwrap().as_ptr())
+            gl::GetUniformLocation(shader_program.name(), c_str!("proj").as_ptr())
         };
 
         const ASPECT_RATIO: f32 = 640.0 / 480.0;
