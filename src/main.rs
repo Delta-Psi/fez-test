@@ -6,12 +6,12 @@ use resources::Resources;
 use std::time::Instant;
 use cgmath::Matrix4;
 
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
 enum CameraState {
     N, E, S, W,
 }
 
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
 enum CameraDirection {
     L, R,
 }
@@ -21,6 +21,7 @@ struct Game {
 
     camera_state: CameraState,
     camera_direction: Option<CameraDirection>,
+    camera_rotate_again: bool,
     camera_rotation_phase: f32, // either [0.0, 1.0) or (-1.0, 0.0]
 
     last_tick: Instant,
@@ -35,6 +36,7 @@ impl Game {
 
             camera_state: CameraState::N,
             camera_direction: None,
+            camera_rotate_again: false,
             camera_rotation_phase: 0.0,
 
             last_tick: Instant::now(),
@@ -42,8 +44,11 @@ impl Game {
     }
 
     pub fn rotate_camera(&mut self, dir: CameraDirection) {
-        if let None = self.camera_direction {
-            self.camera_direction = Some(dir)
+        match self.camera_direction {
+            None => self.camera_direction = Some(dir),
+            Some(current_dir) => if current_dir == dir {
+                self.camera_rotate_again = true;
+            },
         }
     }
 
@@ -77,7 +82,6 @@ impl Game {
 
             if self.camera_rotation_phase.abs() >= 1.0 {
                 self.camera_rotation_phase = 0.0;
-                self.camera_direction = None;
 
                 self.camera_state = match dir {
                     CameraDirection::L => match self.camera_state {
@@ -93,6 +97,12 @@ impl Game {
                         E => N,
                     },
                 };
+
+                if self.camera_rotate_again {
+                    self.camera_rotate_again = false;
+                } else {
+                    self.camera_direction = None;
+                }
             }
         }
     }
