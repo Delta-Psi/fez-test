@@ -3,92 +3,10 @@ pub mod gfx;
 pub mod resources;
 use resources::Resources;
 
+mod camera;
+use crate::camera::*;
+
 use std::time::Instant;
-use cgmath::Matrix4;
-
-#[derive(Copy, Clone, Debug, Eq, PartialEq)]
-enum CameraState {
-    N, E, S, W,
-}
-
-#[derive(Copy, Clone, Debug, Eq, PartialEq)]
-enum CameraDirection {
-    L, R,
-}
-
-struct Camera {
-    state: CameraState,
-    direction: Option<CameraDirection>,
-    rotate_again: bool,
-    rotation_phase: f32,
-}
-
-impl Camera {
-    pub fn new() -> Camera {
-        Camera {
-            state: CameraState::N,
-            direction: None,
-            rotate_again: false,
-            rotation_phase: 0.0,
-        }
-    }
-
-    pub fn rotate(&mut self, dir: CameraDirection) {
-        match self.direction {
-            None => self.direction = Some(dir),
-            Some(current_dir) => if current_dir == dir {
-                self.rotate_again = true;
-            },
-        }
-    }
-
-    fn tick(&mut self, delta: f32) {
-        use CameraState::*;
-
-        if let Some(dir) = self.direction {
-            self.rotation_phase += match dir {
-                CameraDirection::L => -delta / CAMERA_ROTATION_PERIOD,
-                CameraDirection::R =>  delta / CAMERA_ROTATION_PERIOD,
-            };
-
-            if self.rotation_phase.abs() >= 1.0 {
-                self.rotation_phase = 0.0;
-
-                self.state = match dir {
-                    CameraDirection::L => match self.state {
-                        N => E,
-                        E => S,
-                        S => W,
-                        W => N,
-                    },
-                    CameraDirection::R => match self.state {
-                        N => W,
-                        W => S,
-                        S => E,
-                        E => N,
-                    },
-                };
-
-                if self.rotate_again {
-                    self.rotate_again = false;
-                } else {
-                    self.direction = None;
-                }
-            }
-        }
-    }
-
-    pub fn view_matrix(&self) -> Matrix4<f32> {
-        let angle = cgmath::Deg(match self.state {
-            CameraState::S => 0.0,
-            CameraState::E => 90.0,
-            CameraState::N => 180.0,
-            CameraState::W => 270.0,
-        } + self.rotation_phase*90.0);
-
-        Matrix4::from_angle_x(cgmath::Deg(90.0)) * Matrix4::from_angle_z(angle)
-    }
-}
 
 struct Game {
     res: Resources,
@@ -97,8 +15,6 @@ struct Game {
 
     last_tick: Instant,
 }
-
-const CAMERA_ROTATION_PERIOD: f32 = 0.2;
 
 impl Game {
     pub fn new() -> Game {
@@ -111,8 +27,8 @@ impl Game {
         }
     }
 
-    pub fn rotate_camera(&mut self, dir: CameraDirection) {
-        self.camera.rotate(dir);
+    pub fn move_camera(&mut self, dir: CameraDirection) {
+        self.camera.move_(dir);
     }
 
     pub fn tick(&mut self) {
@@ -180,8 +96,8 @@ fn main() {
                         use glutin::event::VirtualKeyCode::*;
 
                         match keycode {
-                            A => game.rotate_camera(CameraDirection::L),
-                            D => game.rotate_camera(CameraDirection::R),
+                            A => game.move_camera(CameraDirection::L),
+                            D => game.move_camera(CameraDirection::R),
 
                             _ => (),
                         }

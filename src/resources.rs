@@ -205,4 +205,7 @@ impl Resources {
             gl::UniformMatrix4fv(self.unif_view, 1, gl::FALSE, matrix.as_ptr());
         }
     }
+
+    pub fn clear() {
+    }
 }
