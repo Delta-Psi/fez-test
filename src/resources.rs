@@ -86,7 +86,7 @@ void main()
 }
 "#;
 
-use crate::gfx::{Shader, ShaderType, ShaderProgram};
+use crate::gfx::{Shader, ShaderType, ShaderProgram, VertexArrayObject};
 
 pub struct Resources {
     pub box_vertices: GLuint,
@@ -94,7 +94,7 @@ pub struct Resources {
     pub vertex_shader: Shader,
     pub fragment_shader: Shader,
     pub shader_program: ShaderProgram,
-    pub vao: GLuint,
+    pub vao: VertexArrayObject,
 
     pub unif_model: GLint,
     pub unif_view: GLint,
@@ -124,14 +124,12 @@ impl Resources {
         shader_program.attach(&fragment_shader);
         shader_program.link().unwrap();
         shader_program.use_();
-        unsafe {
-            gl::BindFragDataLocation(shader_program.gl_handle(), 0, CString::new("outColor").unwrap().as_ptr());
-        }
 
-        let vao = unsafe {
-            let mut vao = 0;
-            gl::GenVertexArrays(1, &mut vao as *mut _);
-            gl::BindVertexArray(vao);
+        let vao = VertexArrayObject::new();
+        vao.bind();
+
+        unsafe {
+            let vao = vao.gl_handle();
 
             let pos_attrib = gl::GetAttribLocation(shader_program.gl_handle(), CString::new("position").unwrap().as_ptr()) as u32;
             gl::VertexAttribPointer(pos_attrib, 3, gl::FLOAT, gl::FALSE, 6*std::mem::size_of::<GLfloat>() as i32, 0 as *mut _);
@@ -159,8 +157,8 @@ impl Resources {
         // matrix transformations
         use cgmath::prelude::*;
         let model = cgmath::Matrix4::identity();
-        let view = cgmath::Matrix4::look_at((0.0, 1.0, 0.0).into(), (0.0, 0.0, 0.0).into(), (0.0, 0.0, 1.0).into());
-        //let view = cgmath::Matrix4::look_at((1.5, 1.5, 1.5).into(), (0.0, 0.0, 0.0).into(), (0.0, 0.0, 1.0).into());
+        //let view = cgmath::Matrix4::look_at((0.0, 1.0, 0.0).into(), (0.0, 0.0, 0.0).into(), (0.0, 0.0, 1.0).into());
+        let view = cgmath::Matrix4::look_at((1.5, 1.5, 1.5).into(), (0.0, 0.0, 0.0).into(), (0.0, 0.0, 1.0).into());
         //let proj = cgmath::perspective(cgmath::Deg(45.0), 640.0/480.0, 1.0, 10.0);
         // orthogonal (w fixed aspect ratio)
         let proj =
@@ -199,8 +197,6 @@ impl Resources {
 impl Drop for Resources {
     fn drop(&mut self) {
         unsafe {
-            gl::DeleteVertexArrays(1, &self.vao as *const _);
-
             gl::DeleteBuffers(1, &self.box_vertices as *const _);
         }
     }
