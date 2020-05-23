@@ -1,4 +1,7 @@
 use gl::types::*;
+use cgmath::prelude::*;
+
+use cgmath::Matrix4;
 
 // cube
 pub static VERTICES: &[GLfloat] = &[
@@ -82,7 +85,8 @@ void main()
         float diffuse = 0.8*max(dot(norm, lightDir), 0.0);
         float ambient = 0.2;
 
-        outColor = vec4((ambient + diffuse)*vec3(1.0, 0.0, 0.0), 1.0);
+        //outColor = vec4((ambient + diffuse)*vec3(1.0, 0.0, 0.0), 1.0);
+        outColor = vec4(((Normal+1.0)/2.0), 1.0);
 }
 "#;
 
@@ -160,7 +164,7 @@ impl Resources {
         use cgmath::prelude::*;
         let model = cgmath::Matrix4::identity();
         //let view = cgmath::Matrix4::look_at((0.0, 1.0, 0.0).into(), (0.0, 0.0, 0.0).into(), (0.0, 0.0, 1.0).into());
-        let view = cgmath::Matrix4::look_at((1.5, 1.5, 1.5).into(), (0.0, 0.0, 0.0).into(), (0.0, 0.0, 1.0).into());
+        let view = cgmath::Matrix4::look_at((-1.5, -1.5, -1.5).into(), (0.0, 0.0, 0.0).into(), (0.0, 0.0, 1.0).into());
         //let proj = cgmath::perspective(cgmath::Deg(45.0), 640.0/480.0, 1.0, 10.0);
         // orthogonal (w fixed aspect ratio)
         let proj =
@@ -192,6 +196,13 @@ impl Resources {
             unif_model,
             unif_view,
             unif_proj,
+        }
+    }
+
+    pub fn set_view_matrix(&self, matrix: &Matrix4<f32>) {
+        unsafe {
+            //gl::UseProgram etc
+            gl::UniformMatrix4fv(self.unif_view, 1, gl::FALSE, matrix.as_ptr());
         }
     }
 }
