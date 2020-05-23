@@ -1,5 +1,6 @@
 use std::time::Instant;
 
+pub mod gfx;
 pub mod resources;
 use resources::Resources;
 
