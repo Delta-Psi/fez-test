@@ -45,6 +45,153 @@ pub static VERTICES: &[GLfloat] = &[
     -0.5,  0.5, -0.5,  0.0,  1.0,  0.0,
 ];
 
+#[derive(Clone, Copy, Debug)]
+pub enum ShaderType {
+    Vertex,
+    Geometry,
+    Fragment,
+}
+
+pub struct Shader {
+    type_: ShaderType,
+    handle: GLuint,
+}
+
+impl Shader {
+    pub fn compile(type_: ShaderType, source: &str) -> Result<Shader, String> {
+        // creates the shader object
+        let handle = unsafe {
+            gl::CreateShader(match type_ {
+                ShaderType::Vertex => gl::VERTEX_SHADER,
+                ShaderType::Geometry => gl::GEOMETRY_SHADER,
+                ShaderType::Fragment => gl::FRAGMENT_SHADER
+            })
+        };
+        assert!(handle != 0, "could not create shader object");
+
+        // attaches the source
+        let source_ptr = source.as_ptr() as *const GLchar;
+        let source_length = source.len() as GLint;
+        unsafe {
+            gl::ShaderSource(handle, 1, &source_ptr as *const *const GLchar, &source_length as *const GLint);
+        }
+
+        // compiles the shader
+        let status = unsafe {
+            gl::CompileShader(handle);
+
+            // check if it's been compiled correctly
+            let mut status: GLint = 0;
+            gl::GetShaderiv(handle, gl::COMPILE_STATUS, &mut status as *mut GLint);
+            status
+        };
+
+        if status == gl::FALSE as GLint {
+            // read error log
+            let len = unsafe {
+                let mut len: GLint = 0;
+                gl::GetShaderiv(handle, gl::INFO_LOG_LENGTH, &mut len as *mut GLint);
+                len as usize
+            };
+
+            let mut buf = vec![0u8; len];
+            unsafe {
+                gl::GetShaderInfoLog(handle, len as GLsizei, 0 as *mut _, buf.as_mut_ptr() as *mut GLchar);
+            }
+
+            Err(String::from_utf8_lossy(&buf).to_string())
+        } else {
+            Ok(Shader {
+                type_,
+                handle,
+            })
+        }
+    }
+
+    pub fn shader_type(&self) -> ShaderType {
+        self.type_
+    }
+
+    pub fn gl_handle(&self) -> GLuint {
+        self.handle
+    }
+}
+
+impl Drop for Shader {
+    fn drop(&mut self) {
+        unsafe {
+            gl::DeleteShader(self.handle);
+        }
+    }
+}
+
+pub struct ShaderProgram(GLuint);
+
+impl ShaderProgram {
+    pub fn new() -> ShaderProgram {
+        let handle = unsafe {
+            gl::CreateProgram()
+        };
+
+        assert!(handle != 0, "could not create shader program object");
+
+        ShaderProgram(handle)
+}
+
+    pub fn attach(&self, shader: &Shader) {
+        unsafe {
+            gl::AttachShader(self.0, shader.gl_handle());
+        }
+    }
+
+    pub fn link(&self) -> Result<(), String> {
+        unsafe {
+            gl::LinkProgram(self.0);
+        }
+
+        let state = unsafe {
+            let mut state: GLint = 0;
+            gl::GetProgramiv(self.0, gl::LINK_STATUS, &mut state as *mut GLint);
+            state
+        };
+
+        if state == gl::FALSE as GLint {
+            let len = unsafe {
+                let mut len: GLint = 0;
+                gl::GetProgramiv(self.0, gl::INFO_LOG_LENGTH, &mut len as *mut GLint);
+                len as usize
+            };
+
+            let mut buf = vec![0u8; len];
+            unsafe {
+                gl::GetProgramInfoLog(self.0, len as GLsizei, 0 as *mut _, buf.as_mut_ptr() as *mut GLchar);
+            }
+
+            Err(String::from_utf8_lossy(&buf).to_string())
+        } else {
+            Ok(())
+        }
+    }
+
+    pub fn use_(&self) {
+        unsafe {
+            gl::UseProgram(self.0)
+        }
+    }
+
+    pub fn gl_handle(&self) -> GLuint {
+        self.0
+    }
+}
+
+impl Drop for ShaderProgram {
+    fn drop(&mut self) {
+        unsafe {
+            gl::DeleteProgram(self.0)
+        }
+    }
+}
+
 static VERTEX_SHADER: &str = r#"
 #version 150 core
 
@@ -89,9 +236,9 @@ void main()
 pub struct Resources {
     pub box_vertices: GLuint,
 
-    pub vertex_shader: GLuint,
-    pub fragment_shader: GLuint,
-    pub shader_program: GLuint,
+    pub vertex_shader: Shader,
+    pub fragment_shader: Shader,
+    pub shader_program: ShaderProgram,
     pub vao: GLuint,
 
     pub unif_model: GLint,
@@ -114,61 +261,28 @@ impl Resources {
             vbo
         };
 
-        let vertex_shader = unsafe {
-            let shader = gl::CreateShader(gl::VERTEX_SHADER);
-            gl::ShaderSource(shader, 1, &CString::new(VERTEX_SHADER).unwrap().as_ptr() as *const _, std::ptr::null());
-            gl::CompileShader(shader);
+        let vertex_shader = Shader::compile(ShaderType::Vertex, VERTEX_SHADER).unwrap();
+        let fragment_shader = Shader::compile(ShaderType::Fragment, FRAGMENT_SHADER).unwrap();
 
-            let mut status = gl::FALSE as GLint;
-            gl::GetShaderiv(shader, gl::COMPILE_STATUS, &mut status as *mut _);
-            if status != gl::TRUE.into() {
-                let mut buf = vec![0u8; 512];
-                gl::GetShaderInfoLog(shader, 512, 0 as *mut _, buf.as_mut_ptr() as *mut _);
-                panic!("{}", String::from_utf8_lossy(&buf));
-            }
-
-            shader
-        };
-
-        let fragment_shader = unsafe {
-            let shader = gl::CreateShader(gl::FRAGMENT_SHADER);
-            gl::ShaderSource(shader, 1, &CString::new(FRAGMENT_SHADER).unwrap().as_ptr() as *const _, std::ptr::null());
-            gl::CompileShader(shader);
-
-            let mut status = gl::FALSE as GLint;
-            gl::GetShaderiv(shader, gl::COMPILE_STATUS, &mut status as *mut _);
-            if status != gl::TRUE.into() {
-                let mut buf = vec![0u8; 512];
-                gl::GetShaderInfoLog(shader, 512, 0 as *mut _, buf.as_mut_ptr() as *mut _);
-                panic!("{}", String::from_utf8_lossy(&buf));
-            }
-
-            shader
-        };
-
-        let shader_program = unsafe {
-            let program = gl::CreateProgram();
-            gl::AttachShader(program, vertex_shader);
-            gl::AttachShader(program, fragment_shader);
-
-            gl::BindFragDataLocation(program, 0, CString::new("outColor").unwrap().as_ptr());
-
-            gl::LinkProgram(program);
-            gl::UseProgram(program);
-
-            program
-        };
+        let shader_program = ShaderProgram::new();
+        shader_program.attach(&vertex_shader);
+        shader_program.attach(&fragment_shader);
+        shader_program.link().unwrap();
+        shader_program.use_();
+        unsafe {
+            gl::BindFragDataLocation(shader_program.gl_handle(), 0, CString::new("outColor").unwrap().as_ptr());
+        }
 
         let vao = unsafe {
             let mut vao = 0;
             gl::GenVertexArrays(1, &mut vao as *mut _);
             gl::BindVertexArray(vao);
 
-            let pos_attrib = gl::GetAttribLocation(shader_program, CString::new("position").unwrap().as_ptr()) as u32;
+            let pos_attrib = gl::GetAttribLocation(shader_program.gl_handle(), CString::new("position").unwrap().as_ptr()) as u32;
             gl::VertexAttribPointer(pos_attrib, 3, gl::FLOAT, gl::FALSE, 6*std::mem::size_of::<GLfloat>() as i32, 0 as *mut _);
             gl::EnableVertexAttribArray(pos_attrib);
 
-            let normal_attrib = gl::GetAttribLocation(shader_program, CString::new("normal").unwrap().as_ptr()) as u32;
+            let normal_attrib = gl::GetAttribLocation(shader_program.gl_handle(), CString::new("normal").unwrap().as_ptr()) as u32;
             gl::VertexAttribPointer(normal_attrib, 3, gl::FLOAT, gl::FALSE, 6*std::mem::size_of::<GLfloat>() as i32, (3*std::mem::size_of::<GLfloat>()) as *mut _);
             gl::EnableVertexAttribArray(normal_attrib);
 
@@ -176,13 +290,13 @@ impl Resources {
         };
 
         let unif_model = unsafe {
-            gl::GetUniformLocation(shader_program, CString::new("model").unwrap().as_ptr())
+            gl::GetUniformLocation(shader_program.gl_handle(), CString::new("model").unwrap().as_ptr())
         };
         let unif_view = unsafe {
-            gl::GetUniformLocation(shader_program, CString::new("view").unwrap().as_ptr())
+            gl::GetUniformLocation(shader_program.gl_handle(), CString::new("view").unwrap().as_ptr())
         };
         let unif_proj = unsafe {
-            gl::GetUniformLocation(shader_program, CString::new("proj").unwrap().as_ptr())
+            gl::GetUniformLocation(shader_program.gl_handle(), CString::new("proj").unwrap().as_ptr())
         };
 
         const ASPECT_RATIO: f32 = 640.0 / 480.0;
@@ -190,18 +304,18 @@ impl Resources {
         // matrix transformations
         use cgmath::prelude::*;
         let model = cgmath::Matrix4::identity();
-        //let view = cgmath::Matrix4::look_at((0.0, 1.0, 0.0).into(), (0.0, 0.0, 0.0).into(), (0.0, 0.0, 1.0).into());
-        let view = cgmath::Matrix4::look_at((1.5, 1.5, 1.5).into(), (0.0, 0.0, 0.0).into(), (0.0, 0.0, 1.0).into());
-        let proj = cgmath::perspective(cgmath::Deg(45.0), 640.0/480.0, 1.0, 10.0);
+        let view = cgmath::Matrix4::look_at((0.0, 1.0, 0.0).into(), (0.0, 0.0, 0.0).into(), (0.0, 0.0, 1.0).into());
+        //let view = cgmath::Matrix4::look_at((1.5, 1.5, 1.5).into(), (0.0, 0.0, 0.0).into(), (0.0, 0.0, 1.0).into());
+        //let proj = cgmath::perspective(cgmath::Deg(45.0), 640.0/480.0, 1.0, 10.0);
         // orthogonal (w fixed aspect ratio)
-        /*let proj =
+        let proj =
             cgmath::Matrix4::from_nonuniform_scale(1.0, ASPECT_RATIO, 1.0)
             *
             cgmath::ortho(
                 -1.5, 1.5,
                 -1.5, 1.5,
                 -10.0, 10.0,
-            );*/
+            );
         unsafe {
             gl::UniformMatrix4fv(unif_model, 1, gl::FALSE, model.as_ptr());
             gl::UniformMatrix4fv(unif_view, 1, gl::FALSE, view.as_ptr());
@@ -231,9 +345,6 @@ impl Drop for Resources {
     fn drop(&mut self) {
         unsafe {
             gl::DeleteVertexArrays(1, &self.vao as *const _);
-            gl::DeleteProgram(self.shader_program);
-            gl::DeleteShader(self.fragment_shader);
-            gl::DeleteShader(self.vertex_shader);
 
             gl::DeleteBuffers(1, &self.box_vertices as *const _);
         }
