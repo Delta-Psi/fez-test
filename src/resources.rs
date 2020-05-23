@@ -1,7 +1,7 @@
 use gl::types::*;
 use cgmath::prelude::*;
 
-use cgmath::Matrix4;
+use cgmath::{Matrix4, Vector3};
 
 // cube
 pub static VERTICES: &[GLfloat] = &[
@@ -162,9 +162,6 @@ impl Resources {
 
         // matrix transformations
         use cgmath::prelude::*;
-        let model = cgmath::Matrix4::identity();
-        //let view = cgmath::Matrix4::look_at((0.0, 1.0, 0.0).into(), (0.0, 0.0, 0.0).into(), (0.0, 0.0, 1.0).into());
-        let view = cgmath::Matrix4::look_at((-1.5, -1.5, -1.5).into(), (0.0, 0.0, 0.0).into(), (0.0, 0.0, 1.0).into());
         //let proj = cgmath::perspective(cgmath::Deg(45.0), 640.0/480.0, 1.0, 10.0);
         // orthogonal (w fixed aspect ratio)
         let proj =
@@ -176,8 +173,6 @@ impl Resources {
                 -10.0, 10.0,
             );
         unsafe {
-            gl::UniformMatrix4fv(unif_model, 1, gl::FALSE, model.as_ptr());
-            gl::UniformMatrix4fv(unif_view, 1, gl::FALSE, view.as_ptr());
             gl::UniformMatrix4fv(unif_proj, 1, gl::FALSE, proj.as_ptr());
         }
 
@@ -206,6 +201,23 @@ impl Resources {
         }
     }
 
-    pub fn clear() {
+    pub fn clear(&self) {
+        unsafe {
+            // TODO: check safety of these fucks
+            gl::ClearColor(0.1, 0.1, 0.1, 1.0);
+            gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
+        }
+    }
+
+    pub fn draw_cube(&self, center: Vector3<f32>, side: f32) {
+        let scale = Matrix4::from_scale(side);
+        let translate = Matrix4::from_translation(-center);
+        let model_matrix = translate*scale;
+
+        unsafe {
+            // TODO: check safety of these fucks as well
+            gl::UniformMatrix4fv(self.unif_model, 1, gl::FALSE, model_matrix.as_ptr());
+            gl::DrawArrays(gl::TRIANGLES, 0, 36);
+        }
     }
 }

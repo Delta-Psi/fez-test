@@ -41,13 +41,11 @@ impl Game {
     }
 
     pub fn draw(&self) {
-        unsafe {
-            gl::ClearColor(0.1, 0.1, 0.1, 1.0);
-            gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
+        self.res.clear();
 
-            self.res.set_view_matrix(&self.camera.view_matrix());
-            gl::DrawArrays(gl::TRIANGLES, 0, 36);
-        }
+        self.res.set_view_matrix(&self.camera.view_matrix());
+        self.res.draw_cube((0.25, 0.25, 0.25).into(), 0.5);
+        self.res.draw_cube((-0.25, -0.25, -0.25).into(), 0.5);
     }
 
 }
