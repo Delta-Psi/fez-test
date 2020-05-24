@@ -20,9 +20,9 @@ pub struct Camera {
 }
 
 impl Camera {
-    pub fn new() -> Camera {
+    pub fn new(position: CameraPosition) -> Camera {
         Camera {
-            position: CameraPosition::N,
+            position,
             direction: None,
             next_direction: None,
             movement_phase: 0.0,
@@ -77,6 +77,11 @@ impl Camera {
             CameraPosition::W => 270.0,
         } + self.movement_phase*90.0);
 
-        Matrix4::from_angle_x(cgmath::Deg(90.0)) * Matrix4::from_angle_z(angle)
+        // this is needed for some reason????? TODO look into this
+        // might be an issue with the cgmath::ortho usage
+        let rotate_z = Matrix4::from_angle_z(-angle);
+        let rotate_x = Matrix4::from_angle_x(cgmath::Deg(-90.0));
+
+        rotate_x * rotate_z
     }
 }

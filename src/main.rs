@@ -21,7 +21,7 @@ impl Game {
         Game {
             res: Resources::new(),
 
-            camera: Camera::new(),
+            camera: Camera::new(CameraPosition::S),
 
             last_tick: Instant::now(),
         }
@@ -47,6 +47,7 @@ impl Game {
 
         self.res.draw_cube((0.0, 0.0, -1.0).into(), 2.0);
 
+        /*
         self.res.draw_cube((0.5, 0.5, 0.125).into(), 0.25);
         self.res.draw_cube((0.0, 0.0, 0.125).into(), 0.25);
         self.res.draw_cube((-0.5, -0.5, 0.125).into(), 0.25);
@@ -55,6 +56,10 @@ impl Game {
         self.res.draw_cube((-0.25, -0.25, 0.375).into(), 0.25);
 
         self.res.draw_cube((0.0, 0.0, 0.625).into(), 0.25);
+        */
+
+        self.res.draw_cube((-0.5, -0.5, 0.125).into(), 0.25);
+        self.res.draw_cube(( 0.5,  0.5, 0.375).into(), 0.25);
     }
 
 }

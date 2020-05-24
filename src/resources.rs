@@ -3,6 +3,49 @@ use cgmath::prelude::*;
 
 use cgmath::{Matrix4, Vector3};
 
+static VERTEX_SHADER: &str = r#"
+#version 150 core
+
+in vec3 position;
+in vec3 normal;
+
+out vec3 Normal;
+out vec3 FragPos;
+
+uniform mat4 model;
+uniform mat4 view;
+uniform mat4 proj;
+
+void main()
+{
+        gl_Position = proj * view * model * vec4(position, 1.0);
+        Normal = mat3(transpose(inverse(model))) * normal;
+        FragPos = vec3(model * vec4(position, 1.0));
+}
+"#;
+
+static FRAGMENT_SHADER: &str = r#"
+#version 150 core
+
+in vec3 Normal;
+in vec3 FragPos;
+
+out vec4 outColor;
+
+void main()
+{
+        vec3 lightPos = vec3(1.5, 1.5, 1.0);
+        vec3 norm = normalize(Normal);
+        vec3 lightDir = normalize(lightPos - FragPos);
+        float diffuse = 0.8*max(dot(norm, lightDir), 0.0);
+        float ambient = 0.2;
+
+        //outColor = vec4((ambient + diffuse)*vec3(1.0, 0.0, 0.0), 1.0);
+        //outColor = vec4(((Normal+1.0)/2.0), 1.0);
+        outColor = vec4(norm, 1.0);
+}
+"#;
+
 // cube
 pub static CUBE_VERTICES: &[GLfloat] = &[
     -0.5, -0.5, -0.5,  0.0,  0.0, -1.0,
@@ -48,48 +91,6 @@ pub static CUBE_VERTICES: &[GLfloat] = &[
     -0.5,  0.5, -0.5,  0.0,  1.0,  0.0,
 ];
 
-static VERTEX_SHADER: &str = r#"
-#version 150 core
-
-in vec3 position;
-in vec3 normal;
-
-out vec3 Normal;
-out vec3 FragPos;
-
-uniform mat4 model;
-uniform mat4 view;
-uniform mat4 proj;
-
-void main()
-{
-        gl_Position = proj * view * model * vec4(position, 1.0);
-        Normal = mat3(transpose(inverse(model))) * normal;
-        FragPos = vec3(model * vec4(position, 1.0));
-}
-"#;
-
-static FRAGMENT_SHADER: &str = r#"
-#version 150 core
-
-in vec3 Normal;
-in vec3 FragPos;
-
-out vec4 outColor;
-
-void main()
-{
-        vec3 lightPos = vec3(1.5, 1.5, 1.0);
-        vec3 norm = normalize(Normal);
-        vec3 lightDir = normalize(lightPos - FragPos);
-        float diffuse = 0.8*max(dot(norm, lightDir), 0.0);
-        float ambient = 0.2;
-
-        //outColor = vec4((ambient + diffuse)*vec3(1.0, 0.0, 0.0), 1.0);
-        outColor = vec4(((Normal+1.0)/2.0), 1.0);
-}
-"#;
-
 use crate::gfx::*;
 use crate::c_str;
 
@@ -109,15 +110,6 @@ pub struct Resources {
 impl Resources {
     pub fn new() -> Resources {
         // initialize all opengl data
-        let cube_vertices = unsafe {
-            let vbo = BufferObject::new();
-
-            gl::BindBuffer(gl::ARRAY_BUFFER, vbo.name());
-            gl::BufferData(gl::ARRAY_BUFFER, std::mem::size_of_val(CUBE_VERTICES) as _, CUBE_VERTICES.as_ptr() as _, gl::STATIC_DRAW);
-
-            vbo
-        };
-
         let vertex_shader = Shader::compile(ShaderType::Vertex, VERTEX_SHADER).unwrap();
         let fragment_shader = Shader::compile(ShaderType::Fragment, FRAGMENT_SHADER).unwrap();
 
@@ -129,13 +121,20 @@ impl Resources {
             gl::UseProgram(shader_program.name());
         }
 
+        let cube_vertices = unsafe {
+            let vbo = BufferObject::new();
+
+            gl::BindBuffer(gl::ARRAY_BUFFER, vbo.name());
+            gl::BufferData(gl::ARRAY_BUFFER, std::mem::size_of_val(CUBE_VERTICES) as _, CUBE_VERTICES.as_ptr() as _, gl::STATIC_DRAW);
+
+            vbo
+        };
+
         let vao = VertexArrayObject::new();
         unsafe {
-            gl::BindVertexArray(vao.name());
-        }
-
-        unsafe {
             let vao = vao.name();
+
+            gl::BindVertexArray(vao);
 
             let pos_attrib = gl::GetAttribLocation(shader_program.name(), c_str!("position").as_ptr()) as u32;
             gl::VertexAttribPointer(pos_attrib, 3, gl::FLOAT, gl::FALSE, 6*std::mem::size_of::<GLfloat>() as i32, 0 as *mut _);
@@ -162,7 +161,7 @@ impl Resources {
 
         // matrix transformations
         use cgmath::prelude::*;
-        //let proj = cgmath::perspective(cgmath::Deg(45.0), 640.0/480.0, 1.0, 10.0);
+        //let proj = cgmath::perspective(cgmath::Deg(45.0), ASPECT_RATIO, 1.0, 10.0);
         // orthogonal (w fixed aspect ratio)
         let proj =
             cgmath::Matrix4::from_nonuniform_scale(1.0, ASPECT_RATIO, 1.0)
@@ -210,7 +209,7 @@ impl Resources {
 
     pub fn draw_cube(&self, center: Vector3<f32>, side: f32) {
         let scale = Matrix4::from_scale(side);
-        let translate = Matrix4::from_translation(-center);
+        let translate = Matrix4::from_translation(center);
         let model_matrix = translate*scale;
 
         unsafe {
