@@ -8,3 +8,6 @@ pub use vao::*;
 
 mod bo;
 pub use bo::*;
+
+mod texture;
+pub use texture::*;
