@@ -40,15 +40,14 @@ uniform sampler2D tex;
 
 void main()
 {
+        /*
         vec3 lightPos = vec3(1.5, 1.5, 1.0);
         vec3 norm = normalize(Normal);
         vec3 lightDir = normalize(lightPos - FragPos);
         float diffuse = 0.8*max(dot(norm, lightDir), 0.0);
         float ambient = 0.2;
+        */
 
-        //outColor = vec4((ambient + diffuse)*vec3(1.0, 0.0, 0.0), 1.0);
-        //outColor = vec4(((Normal+1.0)/2.0), 1.0);
-        //outColor = vec4(norm, 1.0);
         outColor = texture(tex, TexCoord * (1.0, -1.0));
 }
 "#;
@@ -205,7 +204,7 @@ impl Resources {
             gl::GenerateMipmap(gl::TEXTURE_2D);
 
             gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_S, gl::REPEAT as GLint);
-            gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_S, gl::REPEAT as GLint);
+            gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_T, gl::REPEAT as GLint);
             gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MAG_FILTER, gl::NEAREST as GLint);
             gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MIN_FILTER, gl::LINEAR as GLint);
         }
