@@ -4,7 +4,7 @@ use cgmath::prelude::*;
 use cgmath::{Matrix4, Vector3};
 
 // cube
-pub static VERTICES: &[GLfloat] = &[
+pub static CUBE_VERTICES: &[GLfloat] = &[
     -0.5, -0.5, -0.5,  0.0,  0.0, -1.0,
     0.5, -0.5, -0.5,  0.0,  0.0, -1.0, 
     0.5,  0.5, -0.5,  0.0,  0.0, -1.0, 
@@ -94,7 +94,7 @@ use crate::gfx::*;
 use crate::c_str;
 
 pub struct Resources {
-    pub box_vertices: BufferObject,
+    pub cube_vertices: BufferObject,
 
     pub vertex_shader: Shader,
     pub fragment_shader: Shader,
@@ -109,11 +109,11 @@ pub struct Resources {
 impl Resources {
     pub fn new() -> Resources {
         // initialize all opengl data
-        let box_vertices = unsafe {
+        let cube_vertices = unsafe {
             let vbo = BufferObject::new();
 
             gl::BindBuffer(gl::ARRAY_BUFFER, vbo.name());
-            gl::BufferData(gl::ARRAY_BUFFER, std::mem::size_of_val(VERTICES) as _, VERTICES.as_ptr() as _, gl::STATIC_DRAW);
+            gl::BufferData(gl::ARRAY_BUFFER, std::mem::size_of_val(CUBE_VERTICES) as _, CUBE_VERTICES.as_ptr() as _, gl::STATIC_DRAW);
 
             vbo
         };
@@ -181,7 +181,7 @@ impl Resources {
         }
 
         Resources {
-            box_vertices,
+            cube_vertices,
 
             vertex_shader,
             fragment_shader,
@@ -203,7 +203,6 @@ impl Resources {
 
     pub fn clear(&self) {
         unsafe {
-            // TODO: check safety of these fucks
             gl::ClearColor(0.1, 0.1, 0.1, 1.0);
             gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
         }
@@ -215,8 +214,9 @@ impl Resources {
         let model_matrix = translate*scale;
 
         unsafe {
-            // TODO: check safety of these fucks as well
+            // gl::UseProgram etc
             gl::UniformMatrix4fv(self.unif_model, 1, gl::FALSE, model_matrix.as_ptr());
+            // gl::BindBuffer etc
             gl::DrawArrays(gl::TRIANGLES, 0, 36);
         }
     }

@@ -44,8 +44,12 @@ impl Game {
         self.res.clear();
 
         self.res.set_view_matrix(&self.camera.view_matrix());
-        self.res.draw_cube((0.25, 0.25, 0.25).into(), 0.5);
-        self.res.draw_cube((-0.25, -0.25, -0.25).into(), 0.5);
+
+        self.res.draw_cube((0.5, 0.5, 0.125).into(), 0.25);
+        self.res.draw_cube((0.0, 0.0, 0.125).into(), 0.25);
+        self.res.draw_cube((-0.5, -0.5, 0.125).into(), 0.25);
+
+        self.res.draw_cube((0.0, 0.0, -1.0).into(), 2.0);
     }
 
 }
