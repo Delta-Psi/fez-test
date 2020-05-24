@@ -10,7 +10,7 @@ pub enum CameraDirection {
     L, R,
 }
 
-const CAMERA_ROTATION_PERIOD: f32 = 0.2;
+const CAMERA_ROTATION_PERIOD: f32 = 0.3;
 
 pub struct Camera {
     position: CameraPosition,

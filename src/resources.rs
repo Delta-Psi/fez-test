@@ -164,12 +164,12 @@ impl Resources {
         //let proj = cgmath::perspective(cgmath::Deg(45.0), ASPECT_RATIO, 1.0, 10.0);
         // orthogonal (w fixed aspect ratio)
         let proj =
-            cgmath::Matrix4::from_nonuniform_scale(1.0, ASPECT_RATIO, 1.0)
+            cgmath::Matrix4::from_nonuniform_scale(1.0/ASPECT_RATIO, 1.0, 1.0)
             *
             cgmath::ortho(
-                -1.5, 1.5,
-                -1.5, 1.5,
-                -10.0, 10.0,
+                -8.0, 8.0,
+                -8.0, 8.0,
+                -100.0, 100.0,
             );
         unsafe {
             gl::UniformMatrix4fv(unif_proj, 1, gl::FALSE, proj.as_ptr());
@@ -207,16 +207,19 @@ impl Resources {
         }
     }
 
-    pub fn draw_cube(&self, center: Vector3<f32>, side: f32) {
-        let scale = Matrix4::from_scale(side);
-        let translate = Matrix4::from_translation(center);
-        let model_matrix = translate*scale;
-
+    pub fn draw_cube(&self, transform: &Matrix4<f32>) {
         unsafe {
             // gl::UseProgram etc
-            gl::UniformMatrix4fv(self.unif_model, 1, gl::FALSE, model_matrix.as_ptr());
+            gl::UniformMatrix4fv(self.unif_model, 1, gl::FALSE, transform.as_ptr());
             // gl::BindBuffer etc
             gl::DrawArrays(gl::TRIANGLES, 0, 36);
         }
+    }
+
+    pub fn draw_platform(&self, surface_center: Vector3<f32>, surface_dim: (f32, f32), height: f32) {
+        let scale = Matrix4::from_nonuniform_scale(surface_dim.0, surface_dim.1, height);
+        let translate = Matrix4::from_translation(surface_center - Vector3::new(0.0, 0.0, height/2.0));
+
+        self.draw_cube(&(translate * scale));
     }
 }
