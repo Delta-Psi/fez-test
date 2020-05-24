@@ -203,6 +203,11 @@ impl Resources {
             gl::BindTexture(gl::TEXTURE_2D, test_texture.name());
             gl::TexImage2D(gl::TEXTURE_2D, 0, gl::RGB as GLint, test_w as GLint, test_h as GLint, 0, gl::RGB, gl::UNSIGNED_BYTE, test_data.as_ptr() as *const _);
             gl::GenerateMipmap(gl::TEXTURE_2D);
+
+            gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_S, gl::REPEAT as GLint);
+            gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_S, gl::REPEAT as GLint);
+            gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MAG_FILTER, gl::NEAREST as GLint);
+            gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MIN_FILTER, gl::LINEAR as GLint);
         }
 
         unsafe {
