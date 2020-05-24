@@ -17,6 +17,7 @@ pub struct Camera {
     direction: Option<CameraDirection>,
     next_direction: Option<CameraDirection>,
     movement_phase: f32,
+    pub zoom: f32, // log2
 }
 
 impl Camera {
@@ -26,6 +27,7 @@ impl Camera {
             direction: None,
             next_direction: None,
             movement_phase: 0.0,
+            zoom: 0.0,
         }
     }
 
@@ -76,12 +78,12 @@ impl Camera {
             CameraPosition::N => 180.0,
             CameraPosition::W => 270.0,
         } + self.movement_phase*90.0);
+        let zoom = self.zoom.exp2();
 
-        // this is needed for some reason????? TODO look into this
-        // might be an issue with the cgmath::ortho usage
         let rotate_z = Matrix4::from_angle_z(-angle);
         let rotate_x = Matrix4::from_angle_x(cgmath::Deg(-90.0));
+        let zoom = Matrix4::from_scale(zoom);
 
-        rotate_x * rotate_z
+        zoom * rotate_x * rotate_z
     }
 }

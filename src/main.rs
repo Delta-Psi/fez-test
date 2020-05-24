@@ -31,6 +31,10 @@ impl Game {
         self.camera.move_(dir);
     }
 
+    pub fn zoom_camera(&mut self, diff: f32) {
+        self.camera.zoom += diff;
+    }
+
     pub fn tick(&mut self) {
         // update timing
         let current_tick = Instant::now();
@@ -110,6 +114,9 @@ fn main() {
                         match keycode {
                             A => game.move_camera(CameraDirection::L),
                             D => game.move_camera(CameraDirection::R),
+
+                            O => game.zoom_camera(-0.1),
+                            P => game.zoom_camera(0.1),
 
                             _ => (),
                         }

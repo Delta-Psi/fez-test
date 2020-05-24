@@ -41,8 +41,8 @@ void main()
         float ambient = 0.2;
 
         //outColor = vec4((ambient + diffuse)*vec3(1.0, 0.0, 0.0), 1.0);
-        //outColor = vec4(((Normal+1.0)/2.0), 1.0);
-        outColor = vec4(norm, 1.0);
+        outColor = vec4(((Normal+1.0)/2.0), 1.0);
+        //outColor = vec4(norm, 1.0);
 }
 "#;
 
