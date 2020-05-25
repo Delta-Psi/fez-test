@@ -191,16 +191,8 @@ impl Resources {
         }
 
         // decode test texture
-        use image::ImageDecoder;
-        let test_decoder = image::png::PngDecoder::new(std::io::Cursor::new(TEST_PNG)).unwrap();
-        let (test_w, test_h) = test_decoder.dimensions();
-        let test_image = image::DynamicImage::from_decoder(test_decoder).unwrap();
-        let test_data = test_image.to_rgb().into_raw();
-
-        let test_texture = Texture::new();
+        let test_texture = Texture::load_from_png(std::io::Cursor::new(TEST_PNG));
         unsafe {
-            gl::BindTexture(gl::TEXTURE_2D, test_texture.name());
-            gl::TexImage2D(gl::TEXTURE_2D, 0, gl::RGB as GLint, test_w as GLint, test_h as GLint, 0, gl::RGB, gl::UNSIGNED_BYTE, test_data.as_ptr() as *const _);
             gl::GenerateMipmap(gl::TEXTURE_2D);
 
             gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_S, gl::REPEAT as GLint);
