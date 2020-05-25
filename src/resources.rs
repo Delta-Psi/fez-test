@@ -154,7 +154,7 @@ impl Resources {
         }
     }
 
-    pub fn draw_platform(&self, surface_center: Vector3<f32>, surface_dim: (f32, f32), height: f32) {
+    pub fn draw_platform(&self, surface_center: Vector3<f32>, surface_dim: (f32, f32), height: f32, color: (f32, f32, f32)) {
         let scale = Matrix4::from_nonuniform_scale(surface_dim.0, surface_dim.1, height);
         let translate = Matrix4::from_translation(surface_center - Vector3::new(0.0, 0.0, height/2.0));
 
@@ -163,15 +163,10 @@ impl Resources {
         unsafe {
             gl::UniformMatrix4fv(self.unif_model, 1, gl::FALSE, transform.as_ptr());
 
-            gl::Uniform3f(self.unif_color, 0.7, 0.0, 0.0);
+            gl::Uniform3f(self.unif_color, color.0, color.1, color.2);
             gl::BindBuffer(gl::ARRAY_BUFFER, self.platform_faces.name());
             gl::BindVertexArray(self.vao.name());
             gl::DrawArrays(gl::TRIANGLES, 0, vertex_data::PLATFORM_FACES.len() as GLint);
-
-            gl::Uniform3f(self.unif_color, 0.3, 0.0, 0.0);
-            gl::BindBuffer(gl::ARRAY_BUFFER, self.platform_edges.name());
-            gl::BindVertexArray(self.vao.name());
-            gl::DrawArrays(gl::LINES, 0, vertex_data::PLATFORM_EDGES.len() as GLint);
         }
     }
 }

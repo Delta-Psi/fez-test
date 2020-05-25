@@ -49,12 +49,15 @@ impl Game {
 
         self.res.set_view_matrix(&self.camera.view_matrix());
 
-        self.res.draw_platform((0.0, 0.0, -6.0).into(), (8.0, 8.0), 1.0);
+        let color = (0.3, 0.1, 0.5);
 
-        self.res.draw_platform((-5.0, -9.0, -3.0).into(), (2.0, 2.0), 1.0);
-        self.res.draw_platform((9.0, -5.0, 0.0).into(), (2.0, 2.0), 1.0);
-        self.res.draw_platform((5.0, 9.0, 3.0).into(), (2.0, 2.0), 1.0);
-        self.res.draw_platform((-9.0, 5.0, 6.0).into(), (2.0, 2.0), 1.0);
+        self.res.draw_platform((0.0, 0.0, -6.0).into(), (8.0, 8.0), 1.0, color);
+        self.res.draw_platform((0.0, 0.0, 6.0).into(), (4.0, 4.0), 12.0, color);
+
+        self.res.draw_platform((-5.0, -9.0, -3.0).into(), (2.0, 2.0), 1.0, color);
+        self.res.draw_platform((9.0, -5.0, 0.0).into(), (2.0, 2.0), 1.0, color);
+        self.res.draw_platform((5.0, 9.0, 3.0).into(), (2.0, 2.0), 1.0, color);
+        self.res.draw_platform((-9.0, 5.0, 6.0).into(), (2.0, 2.0), 1.0, color);
     }
 }
 
