@@ -71,6 +71,10 @@ impl Resources {
             gl::VertexAttribPointer(pos_attrib, 3, gl::FLOAT, gl::FALSE, 6*size_of::<GLfloat>() as GLint, std::ptr::null_mut());
             gl::EnableVertexAttribArray(pos_attrib);
 
+            let normal_attrib = gl::GetAttribLocation(shader_program.name(), c_str!("inNormal").as_ptr()) as u32;
+            gl::VertexAttribPointer(normal_attrib, 3, gl::FLOAT, gl::FALSE, 6*size_of::<GLfloat>() as GLint, std::ptr::null_mut::<GLfloat>().offset(3) as *mut _);
+            gl::EnableVertexAttribArray(normal_attrib);
+
             vao
         };
 
