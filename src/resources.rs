@@ -6,33 +6,27 @@ use cgmath::{Matrix4, Vector3};
 static VERTEX_SHADER: &str = r#"
 #version 150 core
 
-in vec3 position;
-in vec3 normal;
-in vec2 tex_coord;
+in vec3 inPosition;
+in vec2 inTexCoords;
 
-out vec3 Normal;
-out vec3 FragPos;
-out vec2 TexCoord;
+out vec2 TexCoords;
 
 uniform mat4 model;
+uniform mat4 model_inv;
 uniform mat4 view;
 uniform mat4 proj;
 
 void main()
 {
-        gl_Position = proj * view * model * vec4(position, 1.0);
-        Normal = mat3(transpose(inverse(model))) * normal;
-        FragPos = vec3(model * vec4(position, 1.0));
-        TexCoord = tex_coord;
+        gl_Position = proj * view * model * vec4(inPosition, 1.0);
+        TexCoords = inTexCoords;
 }
 "#;
 
 static FRAGMENT_SHADER: &str = r#"
 #version 150 core
 
-in vec3 Normal;
-in vec3 FragPos;
-in vec2 TexCoord;
+in vec2 TexCoords;
 
 out vec4 outColor;
 
@@ -40,15 +34,7 @@ uniform sampler2D tex;
 
 void main()
 {
-        /*
-        vec3 lightPos = vec3(1.5, 1.5, 1.0);
-        vec3 norm = normalize(Normal);
-        vec3 lightDir = normalize(lightPos - FragPos);
-        float diffuse = 0.8*max(dot(norm, lightDir), 0.0);
-        float ambient = 0.2;
-        */
-
-        outColor = texture(tex, TexCoord * (1.0, -1.0));
+        outColor = texture(tex, TexCoords * (1.0, -1.0));
 }
 "#;
 
@@ -147,17 +133,13 @@ impl Resources {
 
             gl::BindVertexArray(vao);
 
-            let pos_attrib = gl::GetAttribLocation(shader_program.name(), c_str!("position").as_ptr()) as u32;
+            let pos_attrib = gl::GetAttribLocation(shader_program.name(), c_str!("inPosition").as_ptr()) as u32;
             gl::VertexAttribPointer(pos_attrib, 3, gl::FLOAT, gl::FALSE, 8*size_of::<GLfloat>() as i32, 0 as *mut _);
             gl::EnableVertexAttribArray(pos_attrib);
 
-            /*let normal_attrib = gl::GetAttribLocation(shader_program.name(), c_str!("normal").as_ptr()) as u32;
-            gl::VertexAttribPointer(normal_attrib, 3, gl::FLOAT, gl::FALSE, 8*size_of::<GLfloat>() as i32, (3*size_of::<GLfloat>()) as *mut _);
-            gl::EnableVertexAttribArray(normal_attrib);*/
-
-            let tex_coord_attrib = gl::GetAttribLocation(shader_program.name(), c_str!("tex_coord").as_ptr()) as u32;
-            gl::VertexAttribPointer(tex_coord_attrib, 2, gl::FLOAT, gl::FALSE, 8*size_of::<GLfloat>() as i32, (6*size_of::<GLfloat>()) as *mut _);
-            gl::EnableVertexAttribArray(tex_coord_attrib);
+            let tex_coords_attrib = gl::GetAttribLocation(shader_program.name(), c_str!("inTexCoords").as_ptr()) as u32;
+            gl::VertexAttribPointer(tex_coords_attrib, 2, gl::FLOAT, gl::FALSE, 8*size_of::<GLfloat>() as i32, (6*size_of::<GLfloat>()) as *mut _);
+            gl::EnableVertexAttribArray(tex_coords_attrib);
 
             vao
         };
