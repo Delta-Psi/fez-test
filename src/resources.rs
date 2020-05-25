@@ -3,85 +3,8 @@ use cgmath::prelude::*;
 
 use cgmath::{Matrix4, Vector3};
 
-static VERTEX_SHADER: &str = r#"
-#version 150 core
-
-in vec3 inPosition;
-in vec2 inTexCoords;
-
-out vec2 TexCoords;
-
-uniform mat4 model;
-uniform mat4 model_inv;
-uniform mat4 view;
-uniform mat4 proj;
-
-void main()
-{
-        gl_Position = proj * view * model * vec4(inPosition, 1.0);
-        TexCoords = inTexCoords;
-}
-"#;
-
-static FRAGMENT_SHADER: &str = r#"
-#version 150 core
-
-in vec2 TexCoords;
-
-out vec4 outColor;
-
-uniform sampler2D tex;
-
-void main()
-{
-        outColor = texture(tex, TexCoords * (1.0, -1.0));
-}
-"#;
-
-// cube
-pub static CUBE_VERTICES: &[[GLfloat; 8]] = &[
-    [-0.5, -0.5, -0.5,   0.0,  0.0, -1.0,   0.0,  0.0],
-    [ 0.5, -0.5, -0.5,   0.0,  0.0, -1.0,   0.0,  0.0],
-    [ 0.5,  0.5, -0.5,   0.0,  0.0, -1.0,   0.0,  0.0],
-    [ 0.5,  0.5, -0.5,   0.0,  0.0, -1.0,   0.0,  0.0],
-    [-0.5,  0.5, -0.5,   0.0,  0.0, -1.0,   0.0,  0.0],
-    [-0.5, -0.5, -0.5,   0.0,  0.0, -1.0,   0.0,  0.0],
-
-    [-0.5, -0.5,  0.5,   0.0,  0.0,  1.0,   0.0,  0.0],
-    [ 0.5, -0.5,  0.5,   0.0,  0.0,  1.0,   0.0,  0.0],
-    [ 0.5,  0.5,  0.5,   0.0,  0.0,  1.0,   0.0,  0.0],
-    [ 0.5,  0.5,  0.5,   0.0,  0.0,  1.0,   0.0,  0.0],
-    [-0.5,  0.5,  0.5,   0.0,  0.0,  1.0,   0.0,  0.0],
-    [-0.5, -0.5,  0.5,   0.0,  0.0,  1.0,   0.0,  0.0],
-
-    [-0.5,  0.5,  0.5,  -1.0,  0.0,  0.0,   1.0,  1.0],
-    [-0.5,  0.5, -0.5,  -1.0,  0.0,  0.0,   1.0,  0.0],
-    [-0.5, -0.5, -0.5,  -1.0,  0.0,  0.0,   0.0,  0.0],
-    [-0.5, -0.5, -0.5,  -1.0,  0.0,  0.0,   0.0,  0.0],
-    [-0.5, -0.5,  0.5,  -1.0,  0.0,  0.0,   0.0,  1.0],
-    [-0.5,  0.5,  0.5,  -1.0,  0.0,  0.0,   1.0,  1.0],
-
-    [ 0.5,  0.5,  0.5,   1.0,  0.0,  0.0,   0.0,  1.0],
-    [ 0.5,  0.5, -0.5,   1.0,  0.0,  0.0,   0.0,  0.0],
-    [ 0.5, -0.5, -0.5,   1.0,  0.0,  0.0,   1.0,  0.0],
-    [ 0.5, -0.5, -0.5,   1.0,  0.0,  0.0,   1.0,  0.0],
-    [ 0.5, -0.5,  0.5,   1.0,  0.0,  0.0,   1.0,  1.0],
-    [ 0.5,  0.5,  0.5,   1.0,  0.0,  0.0,   0.0,  1.0],
-
-    [-0.5, -0.5, -0.5,   0.0, -1.0,  0.0,   1.0,  0.0],
-    [ 0.5, -0.5, -0.5,   0.0, -1.0,  0.0,   0.0,  0.0],
-    [ 0.5, -0.5,  0.5,   0.0, -1.0,  0.0,   0.0,  1.0],
-    [ 0.5, -0.5,  0.5,   0.0, -1.0,  0.0,   0.0,  1.0],
-    [-0.5, -0.5,  0.5,   0.0, -1.0,  0.0,   1.0,  1.0],
-    [-0.5, -0.5, -0.5,   0.0, -1.0,  0.0,   1.0,  0.0],
-
-    [-0.5,  0.5, -0.5,   0.0,  1.0,  0.0,   0.0,  0.0],
-    [ 0.5,  0.5, -0.5,   0.0,  1.0,  0.0,   1.0,  0.0],
-    [ 0.5,  0.5,  0.5,   0.0,  1.0,  0.0,   1.0,  1.0],
-    [ 0.5,  0.5,  0.5,   0.0,  1.0,  0.0,   1.0,  1.0],
-    [-0.5,  0.5,  0.5,   0.0,  1.0,  0.0,   0.0,  1.0],
-    [-0.5,  0.5, -0.5,   0.0,  1.0,  0.0,   0.0,  0.0],
-];
+mod vertex_data;
+mod shader_sources;
 
 pub static TEST_PNG: &[u8] = include_bytes!("tex/test.png");
 
@@ -89,16 +12,16 @@ use crate::gfx::*;
 use crate::c_str;
 
 pub struct Resources {
-    pub cube_vertices: BufferObject,
+    pub platform_faces: BufferObject,
+    pub platform_edges: BufferObject,
 
-    pub vertex_shader: Shader,
-    pub fragment_shader: Shader,
     pub shader_program: ShaderProgram,
     pub vao: VertexArrayObject,
 
     pub unif_model: GLint,
     pub unif_view: GLint,
     pub unif_proj: GLint,
+    pub unif_color: GLint,
 
     pub test_texture: Texture,
 }
@@ -106,8 +29,8 @@ pub struct Resources {
 impl Resources {
     pub fn new() -> Resources {
         // initialize all opengl data
-        let vertex_shader = Shader::compile(ShaderType::Vertex, VERTEX_SHADER).unwrap();
-        let fragment_shader = Shader::compile(ShaderType::Fragment, FRAGMENT_SHADER).unwrap();
+        let vertex_shader = Shader::compile(ShaderType::Vertex, shader_sources::SOLID_VERTEX_SHADER).unwrap();
+        let fragment_shader = Shader::compile(ShaderType::Fragment, shader_sources::SOLID_FRAGMENT_SHADER).unwrap();
 
         let shader_program = ShaderProgram::new();
         shader_program.attach(&vertex_shader);
@@ -117,11 +40,22 @@ impl Resources {
             gl::UseProgram(shader_program.name());
         }
 
-        let cube_vertices = unsafe {
+        use std::mem::size_of_val;
+
+        let platform_edges = unsafe {
             let vbo = BufferObject::new();
 
             gl::BindBuffer(gl::ARRAY_BUFFER, vbo.name());
-            gl::BufferData(gl::ARRAY_BUFFER, std::mem::size_of_val(CUBE_VERTICES) as _, CUBE_VERTICES.as_ptr() as _, gl::STATIC_DRAW);
+            gl::BufferData(gl::ARRAY_BUFFER, size_of_val(vertex_data::PLATFORM_EDGES) as GLsizeiptr, vertex_data::PLATFORM_EDGES.as_ptr() as *const _, gl::STATIC_DRAW);
+
+            vbo
+        };
+
+        let platform_faces = unsafe {
+            let vbo = BufferObject::new();
+
+            gl::BindBuffer(gl::ARRAY_BUFFER, vbo.name());
+            gl::BufferData(gl::ARRAY_BUFFER, size_of_val(vertex_data::PLATFORM_FACES) as GLsizeiptr, vertex_data::PLATFORM_FACES.as_ptr() as *const _, gl::STATIC_DRAW);
 
             vbo
         };
@@ -134,12 +68,8 @@ impl Resources {
             gl::BindVertexArray(vao);
 
             let pos_attrib = gl::GetAttribLocation(shader_program.name(), c_str!("inPosition").as_ptr()) as u32;
-            gl::VertexAttribPointer(pos_attrib, 3, gl::FLOAT, gl::FALSE, 8*size_of::<GLfloat>() as i32, 0 as *mut _);
+            gl::VertexAttribPointer(pos_attrib, 3, gl::FLOAT, gl::FALSE, 3*size_of::<GLfloat>() as GLint, std::ptr::null_mut());
             gl::EnableVertexAttribArray(pos_attrib);
-
-            let tex_coords_attrib = gl::GetAttribLocation(shader_program.name(), c_str!("inTexCoords").as_ptr()) as u32;
-            gl::VertexAttribPointer(tex_coords_attrib, 2, gl::FLOAT, gl::FALSE, 8*size_of::<GLfloat>() as i32, (6*size_of::<GLfloat>()) as *mut _);
-            gl::EnableVertexAttribArray(tex_coords_attrib);
 
             vao
         };
@@ -152,6 +82,9 @@ impl Resources {
         };
         let unif_proj = unsafe {
             gl::GetUniformLocation(shader_program.name(), c_str!("proj").as_ptr())
+        };
+        let unif_color = unsafe {
+            gl::GetUniformLocation(shader_program.name(), c_str!("color").as_ptr())
         };
 
         const ASPECT_RATIO: f32 = 640.0 / 480.0;
@@ -188,16 +121,16 @@ impl Resources {
         }
 
         Resources {
-            cube_vertices,
+            platform_faces,
+            platform_edges,
 
-            vertex_shader,
-            fragment_shader,
             shader_program,
             vao,
 
             unif_model,
             unif_view,
             unif_proj,
+            unif_color,
 
             test_texture,
         }
@@ -224,10 +157,17 @@ impl Resources {
         let transform = translate*scale;
 
         unsafe {
-            // gl::UseProgram etc
             gl::UniformMatrix4fv(self.unif_model, 1, gl::FALSE, transform.as_ptr());
-            // gl::BindBuffer etc
-            gl::DrawArrays(gl::TRIANGLES, 0, CUBE_VERTICES.len() as GLint);
+
+            gl::Uniform3f(self.unif_color, 0.7, 0.0, 0.0);
+            gl::BindBuffer(gl::ARRAY_BUFFER, self.platform_faces.name());
+            gl::BindVertexArray(self.vao.name());
+            gl::DrawArrays(gl::TRIANGLES, 0, vertex_data::PLATFORM_FACES.len() as GLint);
+
+            gl::Uniform3f(self.unif_color, 0.3, 0.0, 0.0);
+            gl::BindBuffer(gl::ARRAY_BUFFER, self.platform_edges.name());
+            gl::BindVertexArray(self.vao.name());
+            gl::DrawArrays(gl::LINES, 0, vertex_data::PLATFORM_EDGES.len() as GLint);
         }
     }
 }
