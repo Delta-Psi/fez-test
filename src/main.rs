@@ -6,21 +6,26 @@ use resources::Resources;
 mod camera;
 use crate::camera::*;
 
+mod level;
+use level::*;
+
 use std::time::Instant;
 
 struct Game {
     res: Resources,
 
+    level: Level,
     camera: Camera,
 
     last_tick: Instant,
 }
 
 impl Game {
-    pub fn new() -> Game {
+    pub fn new(level: Level) -> Game {
         Game {
             res: Resources::new(),
 
+            level,
             camera: Camera::new(CameraPosition::S),
 
             last_tick: Instant::now(),
@@ -45,19 +50,17 @@ impl Game {
     }
 
     pub fn draw(&self) {
-        self.res.clear();
+        self.res.clear(self.level.bg_color);
 
         self.res.set_view_matrix(&self.camera.view_matrix());
 
-        let color = (0.3, 0.1, 0.5);
-
-        self.res.draw_platform((0.0, 0.0, -6.0).into(), (8.0, 8.0), 1.0, color);
-        self.res.draw_platform((0.0, 0.0, 6.0).into(), (4.0, 4.0), 12.0, color);
-
-        self.res.draw_platform((-5.0, -9.0, -3.0).into(), (2.0, 2.0), 1.0, color);
-        self.res.draw_platform((9.0, -5.0, 0.0).into(), (2.0, 2.0), 1.0, color);
-        self.res.draw_platform((5.0, 9.0, 3.0).into(), (2.0, 2.0), 1.0, color);
-        self.res.draw_platform((-9.0, 5.0, 6.0).into(), (2.0, 2.0), 1.0, color);
+        for platform in &self.level.platforms {
+            self.res.draw_platform(
+                platform.surface_center.into(),
+                platform.surface_dim,
+                platform.height,
+                platform.color);
+        }
     }
 }
 
@@ -81,7 +84,20 @@ fn main() {
         gl::Enable(gl::DEPTH_TEST);
     }
 
-    let mut game = Game::new();
+    let platform_color = (0.3, 0.1, 0.5);
+
+    let level = Level {
+        bg_color: (0.1, 0.1, 0.1),
+        platforms: vec![
+            Platform::new((0.0, 0.0, -6.0), (8.0, 8.0), 1.0, platform_color),
+            Platform::new((0.0, 0.0, 6.0).into(), (4.0, 4.0), 12.0, platform_color),
+            Platform::new((-5.0, -9.0, -3.0).into(), (2.0, 2.0), 1.0, platform_color),
+            Platform::new((9.0, -5.0, 0.0).into(), (2.0, 2.0), 1.0, platform_color),
+            Platform::new((5.0, 9.0, 3.0).into(), (2.0, 2.0), 1.0, platform_color),
+            Platform::new((-9.0, 5.0, 6.0).into(), (2.0, 2.0), 1.0, platform_color),
+        ],
+    };
+    let mut game = Game::new(level);
 
     event_loop.run(move |event, _, control_flow| {
         use glutin::event_loop::ControlFlow;

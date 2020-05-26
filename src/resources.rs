@@ -137,9 +137,9 @@ impl Resources {
         }
     }
 
-    pub fn clear(&self) {
+    pub fn clear(&self, color: (f32, f32, f32)) {
         unsafe {
-            gl::ClearColor(0.1, 0.1, 0.1, 1.0);
+            gl::ClearColor(color.0, color.1, color.2, 1.0);
             gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
         }
     }
