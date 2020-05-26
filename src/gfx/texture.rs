@@ -28,7 +28,7 @@ impl Texture {
         let texture = Self::new();
         unsafe {
             gl::BindTexture(gl::TEXTURE_2D, texture.name());
-            gl::TexImage2D(gl::TEXTURE_2D, 0, gl::RGB as GLint,
+            gl::TexImage2D(gl::TEXTURE_2D, 0, gl::RGBA as GLint,
                 info.width as GLint, info.height as GLint, 0,
                 gl::RGBA, gl::UNSIGNED_BYTE, buf.as_ptr() as *const _);
         }

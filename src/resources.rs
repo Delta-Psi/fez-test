@@ -12,21 +12,23 @@ use crate::gfx::*;
 use crate::c_str;
 
 pub struct Resources {
-    pub platform_faces: BufferObject,
-    pub platform_faces_vao: VertexArrayObject,
+    platform_faces: BufferObject,
+    platform_faces_vao: VertexArrayObject,
 
-    pub square_faces: BufferObject,
-    pub square_faces_vao: VertexArrayObject,
+    square_faces: BufferObject,
+    square_faces_vao: VertexArrayObject,
 
-    pub shader_program: ShaderProgram,
+    shader_program: ShaderProgram,
 
-    pub unif_model: GLint,
-    pub unif_view: GLint,
-    pub unif_proj: GLint,
-    pub unif_color: GLint,
-    pub unif_apply_diffuse: GLint,
+    unif_model: GLint,
+    unif_view: GLint,
+    unif_proj: GLint,
+    unif_color: GLint,
+    unif_apply_diffuse: GLint,
 
-    pub test_texture: Texture,
+    test_texture: Texture,
+
+    camera_inverse_rotation: Matrix4<f32>,
 }
 
 impl Resources {
@@ -140,6 +142,8 @@ impl Resources {
             unif_apply_diffuse,
 
             test_texture,
+
+            camera_inverse_rotation: Matrix4::identity(),
         }
     }
 
@@ -150,7 +154,15 @@ impl Resources {
         }
     }
 
-    pub fn draw_platform(&self, surface_center: Vector3<f32>, surface_dim: (f32, f32), height: f32, color: (f32, f32, f32), view: &Matrix4<f32>) {
+    pub fn set_camera_matrices(&mut self, view: Matrix4<f32>, inverse_rotation: Matrix4<f32>) {
+        self.camera_inverse_rotation = inverse_rotation;
+
+        unsafe {
+            gl::UniformMatrix4fv(self.unif_view, 1, gl::FALSE, view.as_ptr());
+        }
+    }
+
+    pub fn draw_platform(&self, surface_center: Vector3<f32>, surface_dim: (f32, f32), height: f32, color: (f32, f32, f32)) {
         let scale = Matrix4::from_nonuniform_scale(surface_dim.0, surface_dim.1, height);
         let translate = Matrix4::from_translation(surface_center - Vector3::new(0.0, 0.0, height/2.0));
 
@@ -158,7 +170,6 @@ impl Resources {
 
         unsafe {
             gl::UniformMatrix4fv(self.unif_model, 1, gl::FALSE, transform.as_ptr());
-            gl::UniformMatrix4fv(self.unif_view, 1, gl::FALSE, view.as_ptr());
             gl::Uniform3f(self.unif_color, color.0, color.1, color.2);
             gl::Uniform1i(self.unif_apply_diffuse, 1);
 
@@ -167,23 +178,21 @@ impl Resources {
         }
     }
 
-    pub fn draw_square(&self, base: Vector3<f32>, side: f32, color: (f32, f32, f32), view: &Matrix4<f32>) {
-        let mapped_base: Vector3<f32> = (view * base.extend(1.0)).truncate();
-
+    pub fn draw_square(&self, base: Vector3<f32>, side: f32, color: (f32, f32, f32)) {
         let scale = Matrix4::from_scale(side);
         let rotate = Matrix4::from_angle_x(cgmath::Deg(90.0));
-        let translate = Matrix4::from_translation(mapped_base + Vector3::new(0.0, side/2.0, 0.0));
+        let rotate2 = &self.camera_inverse_rotation;
+        let translate = Matrix4::from_translation(base + Vector3::new(0.0, 0.0, side/2.0));
 
-        let transform = translate*rotate*scale;
+        let transform = translate*rotate2*rotate*scale;
 
         unsafe {
             gl::UniformMatrix4fv(self.unif_model, 1, gl::FALSE, transform.as_ptr());
-            gl::UniformMatrix4fv(self.unif_view, 1, gl::FALSE, Matrix4::identity().as_ptr());
             gl::Uniform3f(self.unif_color, color.0, color.1, color.2);
             gl::Uniform1i(self.unif_apply_diffuse, 0);
 
-            gl::BindVertexArray(self.platform_faces_vao.name());
-            gl::DrawArrays(gl::TRIANGLES, 0, vertex_data::PLATFORM_FACES.len() as GLint);
+            gl::BindVertexArray(self.square_faces_vao.name());
+            gl::DrawArrays(gl::TRIANGLES, 0, vertex_data::SQUARE_FACES.len() as GLint);
         }
     }
 }

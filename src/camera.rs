@@ -71,19 +71,24 @@ impl Camera {
         }
     }
 
-    pub fn view_matrix(&self) -> Matrix4<f32> {
-        let angle = cgmath::Deg(match self.position {
+    fn angle(&self) -> cgmath::Deg<f32> {
+        cgmath::Deg(match self.position {
             CameraPosition::S => 0.0,
             CameraPosition::E => 90.0,
             CameraPosition::N => 180.0,
             CameraPosition::W => 270.0,
-        } + self.movement_phase*90.0);
-        let zoom = self.zoom.exp2();
+        } + self.movement_phase*90.0)
+    }
 
-        let rotate_z = Matrix4::from_angle_z(-angle);
+    pub fn view_matrix(&self) -> Matrix4<f32> {
+        let rotate_z = Matrix4::from_angle_z(-self.angle());
         let rotate_x = Matrix4::from_angle_x(cgmath::Deg(-90.0));
-        let zoom = Matrix4::from_scale(zoom);
+        let zoom = Matrix4::from_scale(self.zoom.exp2());
 
         zoom * rotate_x * rotate_z
+    }
+
+    pub fn inverse_z_rotation_matrix(&self) -> Matrix4<f32> {
+        Matrix4::from_angle_z(self.angle())
     }
 }

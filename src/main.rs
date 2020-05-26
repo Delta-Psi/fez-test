@@ -47,22 +47,21 @@ impl Game {
         self.last_tick = current_tick;
 
         self.camera.tick(delta);
+        self.res.set_camera_matrices(self.camera.view_matrix(), self.camera.inverse_z_rotation_matrix());
     }
 
     pub fn draw(&self) {
         self.res.clear(self.level.bg_color);
-
 
         for platform in &self.level.platforms {
             self.res.draw_platform(
                 platform.surface_center.into(),
                 platform.surface_dim,
                 platform.height,
-                platform.color,
-                &self.camera.view_matrix());
+                platform.color);
         }
 
-        self.res.draw_square((3.0, 0.0, -6.0).into(), 1.0, (1.0, 1.0, 1.0), &self.camera.view_matrix());
+        self.res.draw_square((3.0, 0.0, -6.0).into(), 1.0, (1.0, 1.0, 1.0));
     }
 }
 
@@ -126,8 +125,8 @@ fn main() {
                             A => game.move_camera(CameraDirection::L),
                             D => game.move_camera(CameraDirection::R),
 
-                            O => game.zoom_camera(-0.1),
-                            P => game.zoom_camera(0.1),
+                            O => game.zoom_camera(-0.125),
+                            P => game.zoom_camera(0.125),
 
                             _ => (),
                         }
