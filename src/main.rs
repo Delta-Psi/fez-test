@@ -52,15 +52,17 @@ impl Game {
     pub fn draw(&self) {
         self.res.clear(self.level.bg_color);
 
-        self.res.set_view_matrix(&self.camera.view_matrix());
 
         for platform in &self.level.platforms {
             self.res.draw_platform(
                 platform.surface_center.into(),
                 platform.surface_dim,
                 platform.height,
-                platform.color);
+                platform.color,
+                &self.camera.view_matrix());
         }
+
+        self.res.draw_square((3.0, 0.0, -6.0).into(), 1.0, (1.0, 1.0, 1.0), &self.camera.view_matrix());
     }
 }
 
