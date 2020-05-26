@@ -50,6 +50,8 @@ impl Game {
         let delta = current_tick.duration_since(self.last_tick).as_secs_f32();
         self.last_tick = current_tick;
 
+        self.player.tick(delta, &self.camera, &self.level);
+
         self.camera.tick(delta);
         self.res.set_camera_matrices(self.camera.view_matrix(), self.camera.inverse_z_rotation_matrix());
     }
@@ -89,7 +91,7 @@ fn main() {
         gl::Enable(gl::DEPTH_TEST);
     }
 
-    let platform_color = (0.3, 0.1, 0.5);
+    let platform_color = (0.15, 0.38, 0.34);
 
     let level = Level {
         bg_color: (0.1, 0.1, 0.1),
@@ -102,7 +104,7 @@ fn main() {
             Platform::new((-9.0, 5.0, 6.0), (2.0, 2.0), 1.0, platform_color),
         ],
     };
-    let mut game = Game::new(level, (3.0, 0.0, -6.0));
+    let mut game = Game::new(level, (-3.0, -3.0, -6.0));
 
     event_loop.run(move |event, _, control_flow| {
         use glutin::event_loop::ControlFlow;
@@ -120,17 +122,28 @@ fn main() {
 
             Event::WindowEvent { event: WindowEvent::KeyboardInput {input, ..}, .. } => {
                 use glutin::event::ElementState;
+                use glutin::event::VirtualKeyCode::*;
 
-                if input.state == ElementState::Pressed {
-                    if let Some(keycode) = input.virtual_keycode {
-                        use glutin::event::VirtualKeyCode::*;
-
+                if let Some(keycode) = input.virtual_keycode {
+                    if input.state == ElementState::Pressed {
                         match keycode {
                             A => game.move_camera(CameraDirection::L),
                             D => game.move_camera(CameraDirection::R),
 
                             O => game.zoom_camera(-0.125),
                             P => game.zoom_camera(0.125),
+
+                            Left => game.player.movement.press_left(),
+                            Right => game.player.movement.press_right(),
+
+                            Z => game.player.jump(),
+
+                            _ => (),
+                        }
+                    } else if input.state == ElementState::Released {
+                        match keycode {
+                            Left => game.player.movement.release_left(),
+                            Right => game.player.movement.release_right(),
 
                             _ => (),
                         }

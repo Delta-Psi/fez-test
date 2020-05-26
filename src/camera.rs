@@ -38,6 +38,13 @@ impl Camera {
         }
     }
 
+    pub fn position(&self) -> CameraPosition {
+        self.position
+    }
+    pub fn direction(&self) -> Option<CameraDirection> {
+        self.direction
+    }
+
     pub fn tick(&mut self, delta: f32) {
         use CameraPosition::*;
 
