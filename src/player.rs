@@ -114,7 +114,7 @@ impl Player {
             let z_lower = self.pos.2.min(new_z);
             let z_upper = self.pos.2.max(new_z);
             for platform in &level.platforms {
-                if let Some(z) = platform.intersection(self.pos.0, self.pos.1, z_lower, z_upper) {
+                if let Some(z) = platform.intersection(self.pos.0, self.pos.1, 1.0, 1.0, z_lower, z_upper) {
                     new_z = z;
                     new_z_vel = 0.0;
                     self.on_ground = true;
