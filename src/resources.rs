@@ -11,6 +11,7 @@ pub static TEST_PNG: &[u8] = include_bytes!("tex/test.png");
 use crate::gfx::*;
 use crate::c_str;
 
+#[allow(dead_code)] // so "unused" fields dont trigger the warn (they impl Drop)
 pub struct Resources {
     platform_faces: BufferObject,
     platform_faces_vao: VertexArrayObject,

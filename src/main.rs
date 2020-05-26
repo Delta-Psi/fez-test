@@ -8,25 +8,29 @@ use crate::camera::*;
 
 mod level;
 use level::*;
+mod player;
+use player::*;
 
 use std::time::Instant;
 
 struct Game {
     res: Resources,
 
-    level: Level,
     camera: Camera,
+    level: Level,
+    player: Player,
 
     last_tick: Instant,
 }
 
 impl Game {
-    pub fn new(level: Level) -> Game {
+    pub fn new(level: Level, player_pos: (f32, f32, f32)) -> Game {
         Game {
             res: Resources::new(),
 
-            level,
             camera: Camera::new(CameraPosition::S),
+            level,
+            player: Player::new(player_pos),
 
             last_tick: Instant::now(),
         }
@@ -61,7 +65,7 @@ impl Game {
                 platform.color);
         }
 
-        self.res.draw_square((3.0, 0.0, -6.0).into(), 1.0, (1.0, 1.0, 1.0));
+        self.res.draw_square(self.player.pos.into(), 1.0, (1.0, 1.0, 1.0));
     }
 }
 
@@ -98,7 +102,7 @@ fn main() {
             Platform::new((-9.0, 5.0, 6.0), (2.0, 2.0), 1.0, platform_color),
         ],
     };
-    let mut game = Game::new(level);
+    let mut game = Game::new(level, (3.0, 0.0, -6.0));
 
     event_loop.run(move |event, _, control_flow| {
         use glutin::event_loop::ControlFlow;
