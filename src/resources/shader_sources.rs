@@ -33,7 +33,6 @@ void main()
 }
 "#;*/
 
-
 pub static SOLID_VERTEX_SHADER: &str = r#"
 #version 150 core
 

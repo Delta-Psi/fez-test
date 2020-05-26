@@ -1,4 +1,5 @@
 use gl::types::*;
+use std::ffi::CStr;
 
 #[derive(Clone, Copy, Debug)]
 pub enum ShaderType {
@@ -117,6 +118,21 @@ impl ShaderProgram {
         }
     }
 
+    pub fn use_(&self) {
+        unsafe {
+            gl::UseProgram(self.0)
+        }
+    }
+
+    pub fn get_uniform_location(&self, uniform: &CStr) -> GLint {
+        let loc = unsafe {
+            gl::GetUniformLocation(self.0, uniform.as_ptr())
+        };
+        assert!(loc != -1, "invalid uniform variable name");
+
+        loc
+    }
+
     pub fn name(&self) -> GLuint {
         self.0
     }
@@ -129,4 +145,3 @@ impl Drop for ShaderProgram {
         }
     }
 }
-

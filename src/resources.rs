@@ -36,9 +36,7 @@ impl Resources {
         shader_program.attach(&vertex_shader);
         shader_program.attach(&fragment_shader);
         shader_program.link().unwrap();
-        unsafe {
-            gl::UseProgram(shader_program.name());
-        }
+        shader_program.use_();
 
         use std::mem::size_of_val;
 
@@ -78,18 +76,10 @@ impl Resources {
             vao
         };
 
-        let unif_model = unsafe {
-            gl::GetUniformLocation(shader_program.name(), c_str!("model").as_ptr())
-        };
-        let unif_view = unsafe {
-            gl::GetUniformLocation(shader_program.name(), c_str!("view").as_ptr())
-        };
-        let unif_proj = unsafe {
-            gl::GetUniformLocation(shader_program.name(), c_str!("proj").as_ptr())
-        };
-        let unif_color = unsafe {
-            gl::GetUniformLocation(shader_program.name(), c_str!("color").as_ptr())
-        };
+        let unif_model = shader_program.get_uniform_location(c_str!("model"));
+        let unif_view = shader_program.get_uniform_location(c_str!("view"));
+        let unif_proj = shader_program.get_uniform_location(c_str!("proj"));
+        let unif_color = shader_program.get_uniform_location(c_str!("color"));
 
         const ASPECT_RATIO: f32 = 640.0 / 480.0;
 
