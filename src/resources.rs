@@ -13,15 +13,18 @@ use crate::c_str;
 
 pub struct Resources {
     pub platform_faces: BufferObject,
-    pub platform_edges: BufferObject,
+    pub platform_faces_vao: VertexArrayObject,
+
+    pub square_faces: BufferObject,
+    pub square_faces_vao: VertexArrayObject,
 
     pub shader_program: ShaderProgram,
-    pub vao: VertexArrayObject,
 
     pub unif_model: GLint,
     pub unif_view: GLint,
     pub unif_proj: GLint,
     pub unif_color: GLint,
+    pub unif_apply_diffuse: GLint,
 
     pub test_texture: Texture,
 }
@@ -40,15 +43,6 @@ impl Resources {
 
         use std::mem::size_of_val;
 
-        let platform_edges = unsafe {
-            let vbo = BufferObject::new();
-
-            gl::BindBuffer(gl::ARRAY_BUFFER, vbo.name());
-            gl::BufferData(gl::ARRAY_BUFFER, size_of_val(vertex_data::PLATFORM_EDGES) as GLsizeiptr, vertex_data::PLATFORM_EDGES.as_ptr() as *const _, gl::STATIC_DRAW);
-
-            vbo
-        };
-
         let platform_faces = unsafe {
             let vbo = BufferObject::new();
 
@@ -58,12 +52,10 @@ impl Resources {
             vbo
         };
 
-        let vao = VertexArrayObject::new();
+        let platform_faces_vao = VertexArrayObject::new();
+        platform_faces_vao.bind();
         unsafe {
             use std::mem::size_of;
-            let vao = vao.name();
-
-            gl::BindVertexArray(vao);
 
             let pos_attrib = gl::GetAttribLocation(shader_program.name(), c_str!("inPosition").as_ptr()) as u32;
             gl::VertexAttribPointer(pos_attrib, 3, gl::FLOAT, gl::FALSE, 6*size_of::<GLfloat>() as GLint, std::ptr::null_mut());
@@ -72,14 +64,32 @@ impl Resources {
             let normal_attrib = gl::GetAttribLocation(shader_program.name(), c_str!("inNormal").as_ptr()) as u32;
             gl::VertexAttribPointer(normal_attrib, 3, gl::FLOAT, gl::FALSE, 6*size_of::<GLfloat>() as GLint, std::ptr::null_mut::<GLfloat>().offset(3) as *mut _);
             gl::EnableVertexAttribArray(normal_attrib);
+        }
 
-            vao
+        let square_faces = unsafe {
+            let vbo = BufferObject::new();
+
+            gl::BindBuffer(gl::ARRAY_BUFFER, vbo.name());
+            gl::BufferData(gl::ARRAY_BUFFER, size_of_val(vertex_data::SQUARE_FACES) as GLsizeiptr, vertex_data::SQUARE_FACES.as_ptr() as *const _, gl::STATIC_DRAW);
+
+            vbo
         };
+
+        let square_faces_vao = VertexArrayObject::new();
+        square_faces_vao.bind();
+        unsafe {
+            use std::mem::size_of;
+
+            let pos_attrib = gl::GetAttribLocation(shader_program.name(), c_str!("inPosition").as_ptr()) as u32;
+            gl::VertexAttribPointer(pos_attrib, 3, gl::FLOAT, gl::FALSE, 5*size_of::<GLfloat>() as GLint, std::ptr::null_mut());
+            gl::EnableVertexAttribArray(pos_attrib);
+        }
 
         let unif_model = shader_program.get_uniform_location(c_str!("model"));
         let unif_view = shader_program.get_uniform_location(c_str!("view"));
         let unif_proj = shader_program.get_uniform_location(c_str!("proj"));
         let unif_color = shader_program.get_uniform_location(c_str!("color"));
+        let unif_apply_diffuse = shader_program.get_uniform_location(c_str!("apply_diffuse"));
 
         const ASPECT_RATIO: f32 = 640.0 / 480.0;
 
@@ -116,15 +126,18 @@ impl Resources {
 
         Resources {
             platform_faces,
-            platform_edges,
+            platform_faces_vao,
+
+            square_faces,
+            square_faces_vao,
 
             shader_program,
-            vao,
 
             unif_model,
             unif_view,
             unif_proj,
             unif_color,
+            unif_apply_diffuse,
 
             test_texture,
         }
@@ -153,9 +166,9 @@ impl Resources {
         unsafe {
             gl::UniformMatrix4fv(self.unif_model, 1, gl::FALSE, transform.as_ptr());
 
+            gl::Uniform1i(self.unif_apply_diffuse, 1);
             gl::Uniform3f(self.unif_color, color.0, color.1, color.2);
-            gl::BindBuffer(gl::ARRAY_BUFFER, self.platform_faces.name());
-            gl::BindVertexArray(self.vao.name());
+            gl::BindVertexArray(self.platform_faces_vao.name());
             gl::DrawArrays(gl::TRIANGLES, 0, vertex_data::PLATFORM_FACES.len() as GLint);
         }
     }

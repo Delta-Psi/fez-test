@@ -90,11 +90,11 @@ fn main() {
         bg_color: (0.1, 0.1, 0.1),
         platforms: vec![
             Platform::new((0.0, 0.0, -6.0), (8.0, 8.0), 1.0, platform_color),
-            Platform::new((0.0, 0.0, 6.0).into(), (4.0, 4.0), 12.0, platform_color),
-            Platform::new((-5.0, -9.0, -3.0).into(), (2.0, 2.0), 1.0, platform_color),
-            Platform::new((9.0, -5.0, 0.0).into(), (2.0, 2.0), 1.0, platform_color),
-            Platform::new((5.0, 9.0, 3.0).into(), (2.0, 2.0), 1.0, platform_color),
-            Platform::new((-9.0, 5.0, 6.0).into(), (2.0, 2.0), 1.0, platform_color),
+            Platform::new((0.0, 0.0, 6.0), (4.0, 4.0), 12.0, platform_color),
+            Platform::new((-5.0, -9.0, -3.0), (2.0, 2.0), 1.0, platform_color),
+            Platform::new((9.0, -5.0, 0.0), (2.0, 2.0), 1.0, platform_color),
+            Platform::new((5.0, 9.0, 3.0), (2.0, 2.0), 1.0, platform_color),
+            Platform::new((-9.0, 5.0, 6.0), (2.0, 2.0), 1.0, platform_color),
         ],
     };
     let mut game = Game::new(level);

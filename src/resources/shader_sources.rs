@@ -59,9 +59,13 @@ in vec3 Normal;
 out vec4 outColor;
 
 uniform vec3 color;
+uniform bool apply_diffuse;
 
 void main() {
-    float diffuse = max(normalize(Normal).z, 0.0);
+    float diffuse = 1.0;
+    if (apply_diffuse) {
+        diffuse = max(normalize(Normal).z, 0.0);
+    }
 
     outColor = vec4(vec3(0.5 + 0.5*diffuse)*color, 1.0);
 }

@@ -11,6 +11,12 @@ impl VertexArrayObject {
         })
     }
 
+    pub fn bind(&self) {
+        unsafe {
+            gl::BindVertexArray(self.0)
+        }
+    }
+
     pub fn name(&self) -> GLuint {
         self.0
     }
