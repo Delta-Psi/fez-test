@@ -38,6 +38,7 @@ impl Game {
 
     pub fn move_camera(&mut self, dir: CameraDirection) {
         self.camera.move_(dir);
+        self.player.snap_to(self.camera.next_position(), &self.level);
     }
 
     pub fn zoom_camera(&mut self, diff: f32) {

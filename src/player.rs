@@ -58,7 +58,7 @@ pub struct Player {
     pub movement: Movement,
 }
 
-use super::{Camera, Level};
+use super::{Camera, CameraPosition, Level};
 
 impl Player {
     pub fn new(pos: (f32, f32, f32)) -> Self {
@@ -77,12 +77,40 @@ impl Player {
         }
     }
 
+    pub fn snap_to(&mut self, cam_pos: CameraPosition, level: &Level) {
+        use CameraPosition::*;
+
+        if let Some(platform) = self.standing_on {
+            let platform = &level.platforms[platform];
+            let self_coord = match cam_pos {
+                S | N => &mut self.pos.0,
+                E | W => &mut self.pos.1,
+            };
+
+            let plat_coord = match cam_pos {
+                S | N => platform.surface_center.0,
+                E | W => platform.surface_center.1,
+            };
+            let plat_dim = match cam_pos {
+                S | N => platform.surface_dim.0,
+                E | W => platform.surface_dim.1,
+            };
+
+            if (*self_coord - plat_coord).abs() > 0.5*plat_dim + 0.5 {
+                *self_coord = match cam_pos {
+                    S | W => plat_coord - 0.5*plat_dim + 0.5,
+                    N | E => plat_coord + 0.5*plat_dim - 0.5,
+                };
+            }
+        }
+    }
+
     pub fn tick(&mut self, delta: f32, camera: &Camera, level: &Level) {
         if camera.direction().is_some() {
             return;
         }
 
-        use super::CameraPosition::*;
+        use CameraPosition::*;
 
         let mut new_pos = self.pos;
         if self.movement.moving_left() {
