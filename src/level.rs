@@ -20,15 +20,23 @@ impl Platform {
         }
     }
 
-    pub fn intersection(&self, x: f32, y: f32, xdim: f32, ydim: f32, z_lower: f32, z_upper: f32) -> Option<f32> {
+    pub fn intersection_x(&self, x: f32, xdim: f32, z_lower: f32, z_upper: f32) -> bool {
         if (x - self.surface_center.0).abs() > 0.5*(xdim + self.surface_dim.0) {
-            None
-        } else if (y - self.surface_center.1).abs() > 0.5*(ydim + self.surface_dim.1) {
-            None
+            false
         } else if z_lower <= self.surface_center.2 && self.surface_center.2 <= z_upper {
-            Some(self.surface_center.2)
+            true
         } else {
-            None
+            false
+        }
+    }
+
+    pub fn intersection_y(&self, y: f32, ydim: f32, z_lower: f32, z_upper: f32) -> bool {
+        if (y - self.surface_center.1).abs() > 0.5*(ydim + self.surface_dim.1) {
+            false
+        } else if z_lower <= self.surface_center.2 && self.surface_center.2 <= z_upper {
+            true
+        } else {
+            false
         }
     }
 }

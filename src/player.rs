@@ -114,16 +114,24 @@ impl Player {
             let z_lower = self.pos.2.min(new_z);
             let z_upper = self.pos.2.max(new_z);
             for platform in &level.platforms {
-                if let Some(z) = platform.intersection(self.pos.0, self.pos.1, 1.0, 1.0, z_lower, z_upper) {
-                    new_z = z;
+                let intersects = match camera.position() {
+                    S | N => platform.intersection_x(self.pos.0, 1.0, z_lower, z_upper),
+                    W | E => platform.intersection_y(self.pos.1, 1.0, z_lower, z_upper),
+                };
+
+                if intersects {
+                    new_z = platform.surface_center.2;
                     new_z_vel = 0.0;
                     self.on_ground = true;
-                    break;
                 }
             }
         }
 
         self.pos.2 = new_z;
         self.z_vel = new_z_vel;
+
+        if self.z_vel < 0.0 {
+            self.on_ground = false;
+        }
     }
 }
