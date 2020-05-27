@@ -46,7 +46,8 @@ impl Movement {
     }
 }
 
-pub const GRAVITY: f32 = 24.0;
+pub const JUMP_GRAVITY: f32 = 24.0;
+pub const DEFAULT_GRAVITY: f32 = 48.0;
 
 pub const MOVE_VEL: f32 = 6.0;
 pub const JUMP_VEL: f32 = 14.0;
@@ -54,6 +55,7 @@ pub const JUMP_VEL: f32 = 14.0;
 pub struct Player {
     pub pos: (f32, f32, f32),
     pub z_vel: f32,
+    pub jumping: bool,
     pub standing_on: Option<usize>,
     pub movement: Movement,
 }
@@ -65,16 +67,22 @@ impl Player {
         Self {
             pos,
             z_vel: 0.0,
+            jumping: false,
             standing_on: None,
             movement: Movement::empty(),
         }
     }
 
-    pub fn jump(&mut self) {
+    pub fn press_jump(&mut self) {
         if self.standing_on.is_some() {
             self.z_vel = JUMP_VEL;
             self.standing_on = None;
+            self.jumping = true;
         }
+    }
+
+    pub fn release_jump(&mut self) {
+        self.jumping = false;
     }
 
     pub fn snap_from_camera_position(&mut self, cam_pos: CameraPosition, level: &Level) {
@@ -138,8 +146,14 @@ impl Player {
         // TODO: check against x/y collision
         self.pos = new_pos;
 
-        let mut new_z = self.pos.2 + delta * (self.z_vel - delta*0.5*GRAVITY);
-        let mut new_z_vel = self.z_vel - delta*GRAVITY;
+        let gravity = if self.jumping {
+            JUMP_GRAVITY
+        } else {
+            DEFAULT_GRAVITY
+        };
+
+        let mut new_z = self.pos.2 + delta * (self.z_vel - delta*0.5*gravity);
+        let mut new_z_vel = self.z_vel - delta*gravity;
 
         // check against z collision when falling
         if new_z_vel < 0.0 {
@@ -155,6 +169,7 @@ impl Player {
                     new_z = platform.surface_center.2;
                     new_z_vel = 0.0;
                     self.standing_on = Some(i);
+                    self.jumping = false;
                 }
             }
         }

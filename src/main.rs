@@ -137,7 +137,7 @@ fn main() {
                             Left => game.player.movement.press_left(),
                             Right => game.player.movement.press_right(),
 
-                            Z => game.player.jump(),
+                            Z => game.player.press_jump(),
 
                             _ => (),
                         }
@@ -145,6 +145,8 @@ fn main() {
                         match keycode {
                             Left => game.player.movement.release_left(),
                             Right => game.player.movement.release_right(),
+
+                            Z => game.player.release_jump(),
 
                             _ => (),
                         }
