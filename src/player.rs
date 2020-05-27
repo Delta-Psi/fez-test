@@ -54,7 +54,7 @@ pub const JUMP_VEL: f32 = 14.0;
 pub struct Player {
     pub pos: (f32, f32, f32),
     pub z_vel: f32,
-    pub on_ground: bool,
+    pub standing_on: Option<usize>,
     pub movement: Movement,
 }
 
@@ -65,15 +65,15 @@ impl Player {
         Self {
             pos,
             z_vel: 0.0,
-            on_ground: false,
+            standing_on: None,
             movement: Movement::empty(),
         }
     }
 
     pub fn jump(&mut self) {
-        if self.on_ground {
+        if self.standing_on.is_some() {
             self.z_vel = JUMP_VEL;
-            self.on_ground = false;
+            self.standing_on = None;
         }
     }
 
@@ -113,7 +113,7 @@ impl Player {
         if new_z_vel < 0.0 {
             let z_lower = self.pos.2.min(new_z);
             let z_upper = self.pos.2.max(new_z);
-            for platform in &level.platforms {
+            for (i, platform) in level.platforms.iter().enumerate() {
                 let intersects = match camera.position() {
                     S | N => platform.intersection_x(self.pos.0, 1.0, z_lower, z_upper),
                     W | E => platform.intersection_y(self.pos.1, 1.0, z_lower, z_upper),
@@ -122,7 +122,7 @@ impl Player {
                 if intersects {
                     new_z = platform.surface_center.2;
                     new_z_vel = 0.0;
-                    self.on_ground = true;
+                    self.standing_on = Some(i);
                 }
             }
         }
@@ -131,7 +131,7 @@ impl Player {
         self.z_vel = new_z_vel;
 
         if self.z_vel < 0.0 {
-            self.on_ground = false;
+            self.standing_on = None;
         }
     }
 }

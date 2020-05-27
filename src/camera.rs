@@ -45,9 +45,29 @@ impl Camera {
         self.direction
     }
 
-    pub fn tick(&mut self, delta: f32) {
+    pub fn next_position(&self) -> CameraPosition {
         use CameraPosition::*;
 
+        match self.direction {
+            None => self.position,
+            Some(dir) => match dir {
+                CameraDirection::L => match self.position {
+                    N => E,
+                    E => S,
+                    S => W,
+                    W => N,
+                },
+                CameraDirection::R => match self.position {
+                    N => W,
+                    W => S,
+                    S => E,
+                    E => N,
+                },
+            },
+        }
+    }
+
+    pub fn tick(&mut self, delta: f32) {
         if let Some(dir) = self.direction {
             self.movement_phase += match dir {
                 CameraDirection::L => -delta / CAMERA_ROTATION_PERIOD,
@@ -56,22 +76,7 @@ impl Camera {
 
             if self.movement_phase.abs() >= 1.0 {
                 self.movement_phase = 0.0;
-
-                self.position = match dir {
-                    CameraDirection::L => match self.position {
-                        N => E,
-                        E => S,
-                        S => W,
-                        W => N,
-                    },
-                    CameraDirection::R => match self.position {
-                        N => W,
-                        W => S,
-                        S => E,
-                        E => N,
-                    },
-                };
-
+                self.position = self.next_position();
                 self.direction = self.next_direction;
                 self.next_direction = None;
             }
