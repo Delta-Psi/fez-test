@@ -58,7 +58,7 @@ pub struct Player {
     pub movement: Movement,
 }
 
-use super::{Camera, CameraPosition, Level};
+use super::{Camera, CameraPosition, Level, Platform};
 
 impl Player {
     pub fn new(pos: (f32, f32, f32)) -> Self {
@@ -77,31 +77,35 @@ impl Player {
         }
     }
 
-    pub fn snap_to(&mut self, cam_pos: CameraPosition, level: &Level) {
-        use CameraPosition::*;
-
+    pub fn snap_from_camera_position(&mut self, cam_pos: CameraPosition, level: &Level) {
         if let Some(platform) = self.standing_on {
             let platform = &level.platforms[platform];
-            let self_coord = match cam_pos {
-                S | N => &mut self.pos.0,
-                E | W => &mut self.pos.1,
-            };
+            self.snap_to_platform(cam_pos, platform);
+        }
+    }
+    
+    fn snap_to_platform(&mut self, cam_pos: CameraPosition, platform: &Platform) {
+        use CameraPosition::*;
 
-            let plat_coord = match cam_pos {
-                S | N => platform.surface_center.0,
-                E | W => platform.surface_center.1,
-            };
-            let plat_dim = match cam_pos {
-                S | N => platform.surface_dim.0,
-                E | W => platform.surface_dim.1,
-            };
+        let self_coord = match cam_pos {
+            S | N => &mut self.pos.0,
+            E | W => &mut self.pos.1,
+        };
 
-            if (*self_coord - plat_coord).abs() > 0.5*plat_dim + 0.5 {
-                *self_coord = match cam_pos {
-                    S | W => plat_coord - 0.5*plat_dim + 0.5,
-                    N | E => plat_coord + 0.5*plat_dim - 0.5,
-                };
-            }
+        let plat_coord = match cam_pos {
+            S | N => platform.surface_center.0,
+            E | W => platform.surface_center.1,
+        };
+        let plat_dim = match cam_pos {
+            S | N => platform.surface_dim.0,
+            E | W => platform.surface_dim.1,
+        };
+
+        if (*self_coord - plat_coord).abs() > 0.5*plat_dim + 0.5 {
+            *self_coord = match cam_pos {
+                S | W => plat_coord - 0.5*plat_dim + 0.5,
+                N | E => plat_coord + 0.5*plat_dim - 0.5,
+            };
         }
     }
 
@@ -161,5 +165,7 @@ impl Player {
         if self.z_vel < 0.0 {
             self.standing_on = None;
         }
+
+        // TODO: ensure we are not behind a wall
     }
 }
