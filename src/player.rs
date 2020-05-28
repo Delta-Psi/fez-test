@@ -46,11 +46,12 @@ impl Movement {
     }
 }
 
-pub const JUMP_GRAVITY: f32 = 24.0;
-pub const DEFAULT_GRAVITY: f32 = 48.0;
-
 pub const MOVE_VEL: f32 = 6.0;
+
 pub const JUMP_VEL: f32 = 14.0;
+pub const JUMP_GRAVITY: f32 = 25.0;
+pub const DEFAULT_GRAVITY: f32 = 50.0;
+pub const MAX_FALL_VEL: f32 = 24.0;
 
 pub struct Player {
     pub pos: (f32, f32, f32),
@@ -153,10 +154,12 @@ impl Player {
         };
 
         let mut new_z = self.pos.2 + delta * (self.z_vel - delta*0.5*gravity);
-        let mut new_z_vel = self.z_vel - delta*gravity;
+        let mut new_z_vel = (self.z_vel - delta*gravity).max(-MAX_FALL_VEL);
 
         // check against z collision when falling
         if new_z_vel < 0.0 {
+            self.jumping = false;
+
             let z_lower = self.pos.2.min(new_z);
             let z_upper = self.pos.2.max(new_z);
             for (i, platform) in level.platforms.iter().enumerate() {
@@ -169,7 +172,6 @@ impl Player {
                     new_z = platform.surface_center.2;
                     new_z_vel = 0.0;
                     self.standing_on = Some(i);
-                    self.jumping = false;
                 }
             }
         }
