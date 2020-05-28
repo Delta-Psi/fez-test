@@ -2,10 +2,13 @@ use bitflags::bitflags;
 
 bitflags! {
     pub struct Movement: u8 {
-        const PRESSING_LEFT =  0b0001;
-        const PRESSING_RIGHT = 0b0010;
-        const MOVING_LEFT =    0b0100;
-        const MOVING_RIGHT =   0b1000;
+        const PRESSING_LEFT =  0b0000_0001;
+        const PRESSING_RIGHT = 0b0000_0010;
+        const MOVING_LEFT =    0b0000_0100;
+        const MOVING_RIGHT =   0b0000_1000;
+
+        const JUMPING =        0b0001_0000;
+        const PRESSING_DOWN =  0b0010_0000;
     }
 }
 
@@ -44,6 +47,13 @@ impl Movement {
             self.insert(Self::MOVING_LEFT);
         }
     }
+
+    pub fn press_down(&mut self) {
+        self.insert(Self::PRESSING_DOWN);
+    }
+    pub fn release_down(&mut self) {
+        self.remove(Self::PRESSING_DOWN);
+    }
 }
 
 pub const MOVE_VEL: f32 = 6.0;
@@ -58,7 +68,6 @@ pub struct Player {
 
     pub movement: Movement,
     pub z_vel: f32,
-    pub jumping: bool,
 
     pub standing_on: Option<usize>,
     pub behind_wall: bool,
@@ -71,7 +80,6 @@ impl Player {
         Self {
             pos,
             z_vel: 0.0,
-            jumping: false,
             standing_on: None,
             movement: Movement::empty(),
             behind_wall: false,
@@ -80,14 +88,19 @@ impl Player {
 
     pub fn press_jump(&mut self) {
         if self.standing_on.is_some() {
-            self.z_vel = JUMP_VEL;
-            self.standing_on = None;
-            self.jumping = true;
+            if self.movement.contains(Movement::PRESSING_DOWN) {
+                // kind of a hack but whatever
+                self.pos.2 -= 0.01;
+            } else {
+                self.z_vel = JUMP_VEL;
+                self.standing_on = None;
+                self.movement.insert(Movement::JUMPING);
+            }
         }
     }
 
     pub fn release_jump(&mut self) {
-        self.jumping = false;
+        self.movement.remove(Movement::JUMPING);
     }
 
     pub fn snap_from_camera_position(&mut self, cam_pos: CameraPosition, level: &Level) {
@@ -158,7 +171,7 @@ impl Player {
         // TODO: check against x/y collision
         self.pos = new_pos;
 
-        let gravity = if self.jumping {
+        let gravity = if self.movement.contains(Movement::JUMPING) {
             JUMP_GRAVITY
         } else {
             DEFAULT_GRAVITY
@@ -169,7 +182,7 @@ impl Player {
 
         // check against z collision when falling
         if new_z_vel < 0.0 {
-            self.jumping = false;
+            self.movement.remove(Movement::JUMPING);
 
             let z_lower = self.pos.2.min(new_z);
             let z_upper = self.pos.2.max(new_z);
