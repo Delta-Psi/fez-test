@@ -6,3 +6,4 @@ A mock implementation of the basic mechanics of Fez, written in Rust and OpenGl.
 * `Z`: jump
 * `Down+Z`: fall through platform
 * `A`/`D`: rotate perspective
+* `O`/`P`: zoom out/in camera
