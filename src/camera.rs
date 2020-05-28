@@ -1,99 +1,106 @@
 use cgmath::Matrix4;
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
-pub enum CameraPosition {
+pub enum Perspective {
     N, E, S, W,
 }
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
-pub enum CameraDirection {
-    L, R,
+pub enum CameraState {
+    Stopped,
+    MovingL,
+    MovingR,
 }
 
-const CAMERA_ROTATION_PERIOD: f32 = 0.5;
+const CAMERA_MOVEMENT_PERIOD: f32 = 0.5;
 
 pub struct Camera {
-    position: CameraPosition,
-    direction: Option<CameraDirection>,
-    next_direction: Option<CameraDirection>,
-    movement_phase: f32,
+    perspective: Perspective,
     pub zoom: f32, // log2
+
+    state: CameraState,
+    phase: f32,
 }
 
 impl Camera {
-    pub fn new(position: CameraPosition) -> Camera {
+    pub fn new(perspective: Perspective) -> Camera {
         Camera {
-            position,
-            direction: None,
-            next_direction: None,
-            movement_phase: 0.0,
+            perspective,
             zoom: 0.0,
+
+            state: CameraState::Stopped,
+            phase: 0.0,
         }
     }
 
-    pub fn move_(&mut self, dir: CameraDirection) {
-        match self.direction {
-            None => self.direction = Some(dir),
-            Some(_) => self.next_direction = Some(dir),
+    pub fn move_left(&mut self) {
+        use Perspective::*;
+
+        if let CameraState::Stopped = self.state {
+            self.perspective = match self.perspective {
+                S => W,
+                W => N,
+                N => E,
+                E => S,
+            };
+            self.state = CameraState::MovingL;
+            self.phase = -1.0;
+        }
+    }
+    pub fn move_right(&mut self) {
+        use Perspective::*;
+
+        if let CameraState::Stopped = self.state {
+            self.perspective = match self.perspective {
+                S => E,
+                W => S,
+                N => W,
+                E => N,
+            };
+            self.state = CameraState::MovingR;
+            self.phase = 1.0;
         }
     }
 
-    pub fn position(&self) -> CameraPosition {
-        self.position
-    }
-    pub fn direction(&self) -> Option<CameraDirection> {
-        self.direction
+    pub fn perspective(&self) -> Perspective {
+        self.perspective
     }
 
-    pub fn next_position(&self) -> CameraPosition {
-        use CameraPosition::*;
+    pub fn tick(&mut self, delta: f32) {
+        match self.state {
+            CameraState::Stopped => (),
 
-        match self.direction {
-            None => self.position,
-            Some(dir) => match dir {
-                CameraDirection::L => match self.position {
-                    N => E,
-                    E => S,
-                    S => W,
-                    W => N,
-                },
-                CameraDirection::R => match self.position {
-                    N => W,
-                    W => S,
-                    S => E,
-                    E => N,
-                },
+            CameraState::MovingL => {
+                self.phase += delta / CAMERA_MOVEMENT_PERIOD;
+
+                if self.phase >= 0.0 {
+                    self.state = CameraState::Stopped;
+                    self.phase = 0.0;
+                }
+            },
+
+            CameraState::MovingR => {
+                self.phase -= delta / CAMERA_MOVEMENT_PERIOD;
+
+                if self.phase <= 0.0 {
+                    self.state = CameraState::Stopped;
+                    self.phase = 0.0;
+                }
             },
         }
     }
 
-    pub fn tick(&mut self, delta: f32) {
-        if let Some(dir) = self.direction {
-            self.movement_phase += match dir {
-                CameraDirection::L => -delta / CAMERA_ROTATION_PERIOD,
-                CameraDirection::R =>  delta / CAMERA_ROTATION_PERIOD,
-            };
-
-            if self.movement_phase.abs() >= 1.0 {
-                self.movement_phase = 0.0;
-                self.position = self.next_position();
-                self.direction = self.next_direction;
-                self.next_direction = None;
-            }
-        }
-    }
-
     fn angle(&self) -> cgmath::Deg<f32> {
-        cgmath::Deg(match self.position {
-            CameraPosition::S => 0.0,
-            CameraPosition::E => 90.0,
-            CameraPosition::N => 180.0,
-            CameraPosition::W => 270.0,
-        } + self.movement_phase*90.0)
+        cgmath::Deg(match self.perspective {
+            Perspective::S => 0.0,
+            Perspective::W => 90.0,
+            Perspective::N => 180.0,
+            Perspective::E => 270.0,
+        } + self.phase*90.0)
     }
 
     pub fn view_matrix(&self) -> Matrix4<f32> {
-        let rotate_z = Matrix4::from_angle_z(-self.angle());
+        let rotate_z = Matrix4::from_angle_z(self.angle());
         let rotate_x = Matrix4::from_angle_x(cgmath::Deg(-90.0));
         let zoom = Matrix4::from_scale(self.zoom.exp2());
 
@@ -101,6 +108,6 @@ impl Camera {
     }
 
     pub fn inverse_z_rotation_matrix(&self) -> Matrix4<f32> {
-        Matrix4::from_angle_z(self.angle())
+        Matrix4::from_angle_z(-self.angle())
     }
 }

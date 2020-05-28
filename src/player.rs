@@ -73,7 +73,7 @@ pub struct Player {
     pub behind_wall: bool,
 }
 
-use super::{Camera, CameraPosition, Level, Platform};
+use super::{Camera, Perspective, Level, Platform};
 
 impl Player {
     pub fn new(pos: (f32, f32, f32)) -> Self {
@@ -98,12 +98,11 @@ impl Player {
             }
         }
     }
-
     pub fn release_jump(&mut self) {
         self.movement.remove(Movement::JUMPING);
     }
 
-    pub fn snap_from_camera_position(&mut self, cam_pos: CameraPosition, level: &Level) {
+    /*pub fn snap_from_camera_position(&mut self, cam_pos: CameraPosition, level: &Level) {
         if let Some(platform) = self.standing_on {
             let platform = &level.platforms[platform];
             self.snap_to_platform(cam_pos, platform);
@@ -115,12 +114,12 @@ impl Player {
                 break;
             }
         }
-    }
+    }*/
     
-    fn snap_to_platform(&mut self, cam_pos: CameraPosition, platform: &Platform) {
-        use CameraPosition::*;
+    /*fn snap_to_platform(&mut self, perspective: Perspective, platform: &Platform) {
+        use Perspective::*;
 
-        let self_coord = match cam_pos {
+        let self_coord = match perspective {
             S | N => &mut self.pos.0,
             E | W => &mut self.pos.1,
         };
@@ -140,18 +139,14 @@ impl Player {
                 N | E => plat_coord + 0.5*plat_dim - 0.5,
             };
         }
-    }
+    }*/
 
     pub fn tick(&mut self, delta: f32, camera: &Camera, level: &Level) {
-        if camera.direction().is_some() {
-            return;
-        }
-
-        use CameraPosition::*;
+        use Perspective::*;
 
         let mut new_pos = self.pos;
         if self.movement.moving_left() {
-            match camera.position() {
+            match camera.perspective() {
                 S => new_pos.0 -= MOVE_VEL*delta,
                 N => new_pos.0 += MOVE_VEL*delta,
 
@@ -159,7 +154,7 @@ impl Player {
                 W => new_pos.1 += MOVE_VEL*delta,
             };
         } else if self.movement.moving_right() {
-            match camera.position() {
+            match camera.perspective() {
                 S => new_pos.0 += MOVE_VEL*delta,
                 N => new_pos.0 -= MOVE_VEL*delta,
 
@@ -187,7 +182,7 @@ impl Player {
             let z_lower = self.pos.2.min(new_z);
             let z_upper = self.pos.2.max(new_z);
             for (i, platform) in level.platforms.iter().enumerate() {
-                let intersects = match camera.position() {
+                let intersects = match camera.perspective() {
                     S | N => platform.intersection_x(self.pos.0, 1.0, z_lower, z_upper),
                     W | E => platform.intersection_y(self.pos.1, 1.0, z_lower, z_upper),
                 };
@@ -209,9 +204,9 @@ impl Player {
 
         // ensure we are not behind a wall
         // theres possibly a better way but whatevs
-        let mut behind_any = false;
+        /*let mut behind_any = false;
         for platform in level.platforms.iter() {
-            let behind = self.behind_wall(camera.position(), platform);
+            let behind = self.behind_wall(camera.pperspec(), platform);
             behind_any = behind_any || behind;
 
             if behind && !self.behind_wall {
@@ -226,10 +221,10 @@ impl Player {
         }
         if !behind_any  {
             self.behind_wall = false;
-        }
+        }*/
     }
 
-    fn behind_wall(&self, camera_position: CameraPosition, platform: &Platform) -> bool {
+    /*fn behind_wall(&self, camera_position: CameraPosition, platform: &Platform) -> bool {
         use CameraPosition::*;
 
         match camera_position {
@@ -251,5 +246,5 @@ impl Player {
                 && (self.pos.1 - platform.surface_center.1).abs() < 0.5*platform.surface_dim.1 + 0.5
                 && self.pos.0 - 0.5 < platform.surface_center.0 + 0.5*platform.surface_dim.0,
         }
-    }
+    }*/
 }

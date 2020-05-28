@@ -28,7 +28,7 @@ impl Game {
         Game {
             res: Resources::new(),
 
-            camera: Camera::new(CameraPosition::S),
+            camera: Camera::new(Perspective::S),
             level,
             player: Player::new(player_pos),
 
@@ -36,9 +36,12 @@ impl Game {
         }
     }
 
-    pub fn move_camera(&mut self, dir: CameraDirection) {
-        self.camera.move_(dir);
-        self.player.snap_from_camera_position(self.camera.next_position(), &self.level);
+    pub fn move_camera_left(&mut self) {
+        self.camera.move_left();
+    }
+
+    pub fn move_camera_right(&mut self) {
+        self.camera.move_right();
     }
 
     pub fn zoom_camera(&mut self, diff: f32) {
@@ -129,8 +132,8 @@ fn main() {
                 if let Some(keycode) = input.virtual_keycode {
                     if input.state == ElementState::Pressed {
                         match keycode {
-                            A => game.move_camera(CameraDirection::L),
-                            D => game.move_camera(CameraDirection::R),
+                            A => game.move_camera_left(),
+                            D => game.move_camera_right(),
 
                             O => game.zoom_camera(-0.125),
                             P => game.zoom_camera(0.125),
