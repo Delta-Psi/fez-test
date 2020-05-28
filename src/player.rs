@@ -55,10 +55,13 @@ pub const MAX_FALL_VEL: f32 = 24.0;
 
 pub struct Player {
     pub pos: (f32, f32, f32),
+
+    pub movement: Movement,
     pub z_vel: f32,
     pub jumping: bool,
+
     pub standing_on: Option<usize>,
-    pub movement: Movement,
+    pub behind_wall: bool,
 }
 
 use super::{Camera, CameraPosition, Level, Platform};
@@ -71,6 +74,7 @@ impl Player {
             jumping: false,
             standing_on: None,
             movement: Movement::empty(),
+            behind_wall: false,
         }
     }
 
@@ -90,6 +94,13 @@ impl Player {
         if let Some(platform) = self.standing_on {
             let platform = &level.platforms[platform];
             self.snap_to_platform(cam_pos, platform);
+        }
+
+        for platform in level.platforms.iter() {
+            if self.behind_wall(cam_pos, platform) {
+                self.behind_wall = true;
+                break;
+            }
         }
     }
     
@@ -183,6 +194,49 @@ impl Player {
             self.standing_on = None;
         }
 
-        // TODO: ensure we are not behind a wall
+        // ensure we are not behind a wall
+        // theres possibly a better way but whatevs
+        let mut behind_any = false;
+        for platform in level.platforms.iter() {
+            let behind = self.behind_wall(camera.position(), platform);
+            behind_any = behind_any || behind;
+
+            if behind && !self.behind_wall {
+                match camera.position() {
+                    S => self.pos.1 = platform.surface_center.1 - 0.5*platform.surface_dim.1 - 0.5,
+                    N => self.pos.1 = platform.surface_center.1 + 0.5*platform.surface_dim.1 + 0.5,
+                    
+                    W => self.pos.0 = platform.surface_center.0 - 0.5*platform.surface_dim.0 - 0.5,
+                    E => self.pos.0 = platform.surface_center.0 + 0.5*platform.surface_dim.0 + 0.5,
+                }
+            }
+        }
+        if !behind_any  {
+            self.behind_wall = false;
+        }
+    }
+
+    fn behind_wall(&self, camera_position: CameraPosition, platform: &Platform) -> bool {
+        use CameraPosition::*;
+
+        match camera_position {
+            S =>   self.pos.2 < platform.surface_center.2
+                && self.pos.2 + 1.0 > platform.surface_center.2 - platform.height
+                && (self.pos.0 - platform.surface_center.0).abs() < 0.5*platform.surface_dim.0 + 0.5
+                && self.pos.1 + 0.5 > platform.surface_center.1 - 0.5*platform.surface_dim.1,
+            N =>   self.pos.2 < platform.surface_center.2
+                && self.pos.2 + 1.0 > platform.surface_center.2 - platform.height
+                && (self.pos.0 - platform.surface_center.0).abs() < 0.5*platform.surface_dim.0 + 0.5
+                && self.pos.1 - 0.5 < platform.surface_center.1 + 0.5*platform.surface_dim.1,
+
+            W =>   self.pos.2 < platform.surface_center.2
+                && self.pos.2 + 1.0 > platform.surface_center.2 - platform.height
+                && (self.pos.1 - platform.surface_center.1).abs() < 0.5*platform.surface_dim.1 + 0.5
+                && self.pos.0 + 0.5 > platform.surface_center.0 - 0.5*platform.surface_dim.0,
+            E =>   self.pos.2 < platform.surface_center.2
+                && self.pos.2 + 1.0 > platform.surface_center.2 - platform.height
+                && (self.pos.1 - platform.surface_center.1).abs() < 0.5*platform.surface_dim.1 + 0.5
+                && self.pos.0 - 0.5 < platform.surface_center.0 + 0.5*platform.surface_dim.0,
+        }
     }
 }
