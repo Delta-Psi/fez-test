@@ -102,44 +102,38 @@ impl Player {
         self.movement.remove(Movement::JUMPING);
     }
 
-    /*pub fn snap_from_camera_position(&mut self, cam_pos: CameraPosition, level: &Level) {
-        if let Some(platform) = self.standing_on {
-            let platform = &level.platforms[platform];
-            self.snap_to_platform(cam_pos, platform);
-        }
-
-        for platform in level.platforms.iter() {
-            if self.behind_wall(cam_pos, platform) {
-                self.behind_wall = true;
-                break;
-            }
-        }
-    }*/
-    
-    /*fn snap_to_platform(&mut self, perspective: Perspective, platform: &Platform) {
+    pub fn on_camera_move(&mut self, perspective: Perspective, level: &Level) {
         use Perspective::*;
 
-        let self_coord = match perspective {
-            S | N => &mut self.pos.0,
-            E | W => &mut self.pos.1,
-        };
+        if let Some(platform) = self.standing_on {
+            let platform = &level.platforms[platform];
 
-        let plat_coord = match cam_pos {
-            S | N => platform.surface_center.0,
-            E | W => platform.surface_center.1,
-        };
-        let plat_dim = match cam_pos {
-            S | N => platform.surface_dim.0,
-            E | W => platform.surface_dim.1,
-        };
-
-        if (*self_coord - plat_coord).abs() > 0.5*plat_dim + 0.5 {
-            *self_coord = match cam_pos {
-                S | W => plat_coord - 0.5*plat_dim + 0.5,
-                N | E => plat_coord + 0.5*plat_dim - 0.5,
+            let self_coord = match perspective {
+                S | N => &mut self.pos.0,
+                W | E => &mut self.pos.1,
             };
+            let platform_coord = match perspective {
+                S | N => platform.surface_center.0,
+                W | E => platform.surface_center.1,
+            };
+            let platform_dim = match perspective {
+                S | N => platform.surface_dim.0,
+                W | E => platform.surface_dim.1,
+            };
+
+            // do we end up ouside the platform?
+            if (*self_coord - platform_coord).abs() > 0.5*platform_dim + 0.5 {
+                *self_coord = match perspective {
+                    S | W => platform_coord - 0.5*platform_dim + 0.5,
+                    N | E => platform_coord + 0.5*platform_dim - 0.5,
+                }
+            }
         }
-    }*/
+
+        if level.platforms.iter().any(|platform| self.behind_wall(perspective, platform)) {
+            self.behind_wall = true;
+        }
+    }
 
     pub fn tick(&mut self, delta: f32, camera: &Camera, level: &Level) {
         use Perspective::*;
@@ -204,13 +198,13 @@ impl Player {
 
         // ensure we are not behind a wall
         // theres possibly a better way but whatevs
-        /*let mut behind_any = false;
+        let mut behind_any = false;
         for platform in level.platforms.iter() {
-            let behind = self.behind_wall(camera.pperspec(), platform);
+            let behind = self.behind_wall(camera.perspective(), platform);
             behind_any = behind_any || behind;
 
             if behind && !self.behind_wall {
-                match camera.position() {
+                match camera.perspective() {
                     S => self.pos.1 = platform.surface_center.1 - 0.5*platform.surface_dim.1 - 0.5,
                     N => self.pos.1 = platform.surface_center.1 + 0.5*platform.surface_dim.1 + 0.5,
                     
@@ -221,13 +215,13 @@ impl Player {
         }
         if !behind_any  {
             self.behind_wall = false;
-        }*/
+        }
     }
 
-    /*fn behind_wall(&self, camera_position: CameraPosition, platform: &Platform) -> bool {
-        use CameraPosition::*;
+    fn behind_wall(&self, perspective: Perspective, platform: &Platform) -> bool {
+        use Perspective::*;
 
-        match camera_position {
+        match perspective {
             S =>   self.pos.2 < platform.surface_center.2
                 && self.pos.2 + 1.0 > platform.surface_center.2 - platform.height
                 && (self.pos.0 - platform.surface_center.0).abs() < 0.5*platform.surface_dim.0 + 0.5
@@ -246,5 +240,5 @@ impl Player {
                 && (self.pos.1 - platform.surface_center.1).abs() < 0.5*platform.surface_dim.1 + 0.5
                 && self.pos.0 - 0.5 < platform.surface_center.0 + 0.5*platform.surface_dim.0,
         }
-    }*/
+    }
 }

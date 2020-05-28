@@ -38,10 +38,12 @@ impl Game {
 
     pub fn move_camera_left(&mut self) {
         self.camera.move_left();
+        self.player.on_camera_move(self.camera.perspective(), &self.level);
     }
 
     pub fn move_camera_right(&mut self) {
         self.camera.move_right();
+        self.player.on_camera_move(self.camera.perspective(), &self.level);
     }
 
     pub fn zoom_camera(&mut self, diff: f32) {
