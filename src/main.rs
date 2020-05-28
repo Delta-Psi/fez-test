@@ -93,6 +93,7 @@ fn main() {
     }
 
     let platform_color = (0.15, 0.38, 0.34);
+    let starting_position = (-3.0, -3.0, -5.0);
 
     let level = Level {
         bg_color: (0.1, 0.1, 0.1),
@@ -105,7 +106,7 @@ fn main() {
             Platform::new((-9.0, 5.0, 6.0), (2.0, 2.0), 1.0, platform_color),
         ],
     };
-    let mut game = Game::new(level, (-3.0, -3.0, -6.0));
+    let mut game = Game::new(level, starting_position);
 
     event_loop.run(move |event, _, control_flow| {
         use glutin::event_loop::ControlFlow;
@@ -138,6 +139,9 @@ fn main() {
                             Right => game.player.movement.press_right(),
                             Down => game.player.movement.press_down(),
                             Z => game.player.press_jump(),
+
+                            // reset
+                            R => game.player = Player::new(starting_position),
 
                             _ => (),
                         }
