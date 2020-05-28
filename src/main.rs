@@ -97,7 +97,7 @@ fn main() {
         gl::Enable(gl::DEPTH_TEST);
     }
 
-    let platform_color = (0.15, 0.38, 0.34);
+    let platform_color = (0.38, 0.15, 0.34);
     let starting_position = (-3.0, -3.0, -5.0);
 
     let level = Level {
